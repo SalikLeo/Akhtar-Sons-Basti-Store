@@ -173,6 +173,8 @@ window.SalesForm = {
         this.additionalDiscount = (sale.discount || 0) - itemDiscountSum;
         if (this.additionalDiscount < 0) this.additionalDiscount = 0;
         if (sale.payment_method) this.paymentMethod = sale.payment_method;
+        else this.paymentMethod = 'Cash';
+        this.remarks = sale.remarks || (sale.payment_method ? `Paid via ${sale.payment_method}` : 'Paid via Cash');
         this.shopNtn = sale.cnic_ntn || sale.ntn || sale.cnic || (matchShop ? (matchShop.ntn || matchShop.cnic || '') : '');
       }
     } else {
@@ -189,6 +191,8 @@ window.SalesForm = {
       this.isReceivedCustom = false;
       this.sellerName = '';
       this.salesmanContact = '';
+      this.paymentMethod = 'Cash';
+      this.remarks = 'Paid via Cash';
     }
 
     const daysList = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
@@ -260,7 +264,7 @@ window.SalesForm = {
 
               <div class="flex items-center">
                 <span class="w-24 font-bold text-slate-700">Remarks:</span>
-                <input type="text" id="sf-payment-remarks" value="Paid via Cash" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-xs py-0.5 outline-none focus:border-slate-950">
+                <input type="text" id="sf-payment-remarks" value="${this.remarks || ('Paid via ' + (this.paymentMethod || 'Cash'))}" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-xs py-0.5 outline-none focus:border-slate-950">
               </div>
             </div>
 
@@ -462,13 +466,30 @@ window.SalesForm = {
 
           <!-- 6. Bottom Action Toolbar -->
           <div class="flex items-center justify-between pt-2 border-t border-slate-300 shrink-0">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2.5">
               <button type="button" 
                       onclick="SalesForm.resetForm()" 
                       class="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all border border-slate-300">
                 <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                 <span>Clear / Reset (Esc)</span>
               </button>
+
+              <!-- Payment Method Toggle (Cash / Online) -->
+              <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-300 select-none">
+                <span class="text-[11px] font-bold text-slate-600 px-2 uppercase tracking-tight">Method:</span>
+                <button type="button" 
+                        id="sf-method-cash"
+                        onclick="SalesForm.setPaymentMethod('Cash')" 
+                        class="px-3 py-1.5 rounded-md text-xs ${(!this.paymentMethod || this.paymentMethod === 'Cash') ? 'font-black bg-slate-900 text-white shadow-sm' : 'font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'} cursor-pointer">
+                  Cash
+                </button>
+                <button type="button" 
+                        id="sf-method-online"
+                        onclick="SalesForm.setPaymentMethod('Online')" 
+                        class="px-3 py-1.5 rounded-md text-xs ${this.paymentMethod === 'Online' ? 'font-black bg-slate-900 text-white shadow-sm' : 'font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'} cursor-pointer">
+                  Online
+                </button>
+              </div>
             </div>
 
             <div class="flex items-center gap-3">
@@ -1356,6 +1377,30 @@ window.SalesForm = {
     }
   },
 
+  setPaymentMethod(method) {
+    this.paymentMethod = method;
+    const btnCash = document.getElementById('sf-method-cash');
+    const btnOnline = document.getElementById('sf-method-online');
+
+    if (btnCash && btnOnline) {
+      if (method === 'Cash') {
+        btnCash.className = 'px-3 py-1.5 rounded-md text-xs font-black bg-slate-900 text-white shadow-sm cursor-pointer';
+        btnOnline.className = 'px-3 py-1.5 rounded-md text-xs font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200 cursor-pointer';
+      } else {
+        btnOnline.className = 'px-3 py-1.5 rounded-md text-xs font-black bg-slate-900 text-white shadow-sm cursor-pointer';
+        btnCash.className = 'px-3 py-1.5 rounded-md text-xs font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200 cursor-pointer';
+      }
+    }
+
+    const remarksInput = document.getElementById('sf-payment-remarks');
+    if (remarksInput) {
+      const val = remarksInput.value.trim();
+      if (!val || val === 'Paid via Cash' || val === 'Paid via Online') {
+        remarksInput.value = `Paid via ${method}`;
+      }
+    }
+  },
+
   resetForm() {
     this.cart = [];
     this.shopName = '';
@@ -1368,6 +1413,8 @@ window.SalesForm = {
     this.sellerName = '';
     this.salesmanContact = '';
     this.additionalDiscount = 0;
+    this.paymentMethod = 'Cash';
+    this.remarks = 'Paid via Cash';
     app.navigate('proposal-form');
   },
 
@@ -1932,6 +1979,7 @@ window.SalesForm = {
       pending_amount: pending,
       discount: totalDiscount,
       payment_method: this.paymentMethod || 'Cash',
+      remarks: (document.getElementById('sf-payment-remarks')?.value || '').trim() || `Paid via ${this.paymentMethod || 'Cash'}`,
       sale_mode: 'retail',
       items: items
     };
@@ -2242,7 +2290,11 @@ window.SalesForm = {
       : grandTotal;
     const pendingAmount = Math.max(0, grandTotal - receivedAmount);
     const netBalance = Math.max(0, (includePrevBal ? grandTotal : (prevBalance + grandTotal)) - receivedAmount);
-    const paymentRemarks = data.payment_method ? `Paid via ${data.payment_method}` : (pendingAmount > 0 ? (receivedAmount > 0 ? 'Partial Payment' : 'Credit / Pending') : 'Cash / Paid');
+    const paymentMethodStr = (data.payment_method || this.paymentMethod || 'Cash').toUpperCase();
+    const rawRemarks = (data.remarks !== undefined && data.remarks !== null)
+      ? data.remarks
+      : (document.getElementById('sf-payment-remarks')?.value || '').trim();
+    const paymentRemarks = rawRemarks || (data.payment_method ? `Paid via ${data.payment_method}` : (pendingAmount > 0 ? (receivedAmount > 0 ? 'Partial Payment' : 'Credit / Pending') : 'Cash / Paid'));
 
     const logoSrc = (this.settings && this.settings.logo_path) ? `file://${this.settings.logo_path}` : '';
     const logoHtml = logoSrc 
@@ -2272,7 +2324,7 @@ window.SalesForm = {
             <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Invoice #</span> <span style="font-weight: 800; font-size: 10.5px;">${invoiceNo}</span></div>
             <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Booked By:</span> <span style="font-weight: 700; text-transform: uppercase;">${salesmanName} ${salesmanContact}</span></div>
             <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Delivered By:</span> <span>SELF</span></div>
-            <div style="display: flex;"><span style="width: 85px; font-weight: 700;">NTN - STRN #</span> <span>5563324-1</span></div>
+            <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Method:</span> <span style="font-weight: 800; text-transform: uppercase;">${paymentMethodStr}</span></div>
             <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Remarks:</span> <span>${paymentRemarks}</span></div>
           </div>
 

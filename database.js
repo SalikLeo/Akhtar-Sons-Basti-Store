@@ -269,6 +269,9 @@ function createTables() {
   if (!columns.includes('pending_amount')) {
     try { db.exec('ALTER TABLE proposals ADD COLUMN pending_amount REAL DEFAULT 0'); } catch(e) {}
   }
+  if (!columns.includes('remarks')) {
+    try { db.exec('ALTER TABLE proposals ADD COLUMN remarks TEXT'); } catch(e) {}
+  }
 
   // Same for expenses
   const expInfo = db.prepare("PRAGMA table_info(expenses)").all().map(c => c.name);
