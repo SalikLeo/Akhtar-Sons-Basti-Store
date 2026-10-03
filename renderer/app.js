@@ -70,23 +70,15 @@ const app = {
   bindEvents() {
     document.getElementById('confirm-cancel-btn').addEventListener('click', () => this.hideConfirm());
     document.getElementById('confirm-alt-btn')?.addEventListener('click', () => {
-      if (this.confirmAltCallback) {
-        this.hideConfirm();
-        this.confirmAltCallback();
-      } else {
-        this.hideConfirm();
-      }
+      const cb = this.confirmAltCallback;
+      this.hideConfirm();
+      if (cb) cb();
     });
     document.getElementById('confirm-ok-btn').addEventListener('click', () => {
       const input = document.getElementById('prompt-input').value;
-      if (this.confirmCallback) {
-         // Some callbacks might want to keep the modal open or handle closing themselves
-         this.hideConfirm();
-         this.confirmCallback(input);
-      } else {
-         // Default close
-         this.hideConfirm();
-      }
+      const cb = this.confirmCallback;
+      this.hideConfirm();
+      if (cb) cb(input);
     });
 
     const promptInput = document.getElementById('prompt-input');
@@ -669,9 +661,10 @@ const app = {
     this.setPaymentMethod('Cash');
     okBtn.onclick = () => {
         const val = parseFloat(input.value) || 0;
-        
+        const cb = this.paymentCallback;
+        const method = this.currentPaymentMethod || 'Cash';
         this.hidePaymentModal();
-        if (this.paymentCallback) this.paymentCallback(val, this.currentPaymentMethod || 'Cash');
+        if (cb) cb(val, method);
     };
 
     modal.classList.remove('hidden', 'opacity-0');
