@@ -1,0 +1,43 @@
+{
+  "name": "akhtar-and-sons",
+  "version": "1.0.0",
+  "description": "Akhtar & Sons Management System",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node node_modules/electron/cli.js .",
+    "dist": "node node_modules/electron-builder/cli.js",
+    "build:win": "node node_modules/electron-builder/cli.js --win"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^12.9.0"
+  },
+  "devDependencies": {
+    "electron": "^41.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.akhtarandsons.app",
+    "productName": "Akhtar & Sons",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist",
+      "!node_modules/@electron/rebuild/**/*"
+    ]
+  }
+}
