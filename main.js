@@ -211,58 +211,160 @@ const handleSavePdf = async (event, data = {}) => {
     try {
       let pdfData;
       if (options.html) {
+        // Read local Inter font files as Base64 for guaranteed offline rendering
+        const inter400Path = path.join(__dirname, 'renderer', 'assets', 'fonts', 'inter-400.ttf');
+        const inter500Path = path.join(__dirname, 'renderer', 'assets', 'fonts', 'inter-500.ttf');
+        const inter600Path = path.join(__dirname, 'renderer', 'assets', 'fonts', 'inter-600.ttf');
+
+        const inter400B64 = fs.existsSync(inter400Path) ? fs.readFileSync(inter400Path).toString('base64') : '';
+        const inter500B64 = fs.existsSync(inter500Path) ? fs.readFileSync(inter500Path).toString('base64') : '';
+        const inter600B64 = fs.existsSync(inter600Path) ? fs.readFileSync(inter600Path).toString('base64') : '';
+
+        // Convert any local file images in HTML to base64 Data URIs so they load properly in offscreen window
+        let processedHtml = options.html.replace(/src=["']([^"']+)["']/gi, (match, src) => {
+          if (src.startsWith('data:')) return match;
+          try {
+            let localPath = src.replace(/^file:\/\/\/?/, '');
+            if (/^[a-zA-Z]:/.test(localPath)) {
+              // Valid windows drive path e.g. D:/path
+            } else if (/^\/[a-zA-Z]:/.test(localPath)) {
+              localPath = localPath.substring(1);
+            } else if (!path.isAbsolute(localPath)) {
+              localPath = path.join(__dirname, 'renderer', localPath);
+            }
+            localPath = path.normalize(localPath);
+            if (fs.existsSync(localPath)) {
+              const ext = path.extname(localPath).replace('.', '').toLowerCase();
+              const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+              const imgData = fs.readFileSync(localPath).toString('base64');
+              return `src="data:${mime};base64,${imgData}"`;
+            }
+          } catch (e) {
+            console.error('Failed to convert image to base64:', e);
+          }
+          return match;
+        });
+
+        const fontCss = `
+          @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400;
+            src: url('data:font/truetype;charset=utf-8;base64,${inter400B64}') format('truetype');
+          }
+          @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 500;
+            src: url('data:font/truetype;charset=utf-8;base64,${inter500B64}') format('truetype');
+          }
+          @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 600;
+            src: url('data:font/truetype;charset=utf-8;base64,${inter600B64}') format('truetype');
+          }
+          @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 700;
+            src: url('data:font/truetype;charset=utf-8;base64,${inter600B64}') format('truetype');
+          }
+          @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 800;
+            src: url('data:font/truetype;charset=utf-8;base64,${inter600B64}') format('truetype');
+          }
+          @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 900;
+            src: url('data:font/truetype;charset=utf-8;base64,${inter600B64}') format('truetype');
+          }
+        `;
+
+        const fullHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      ${fontCss}
+      @page {
+        size: ${options.pageSize || 'A5'} portrait;
+        margin: 4mm 5mm;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #000000;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        -webkit-font-smoothing: antialiased !important;
+        text-rendering: geometricPrecision !important;
+      }
+      .receipt-80mm {
+        width: 100% !important;
+        max-width: 138mm !important;
+        margin: 0 auto !important;
+        padding: 4px 6px !important;
+        box-sizing: border-box !important;
+        color: #000000 !important;
+        background: #ffffff !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 10px !important;
+        line-height: 1.3 !important;
+        -webkit-font-smoothing: antialiased !important;
+        text-rendering: geometricPrecision !important;
+      }
+      .receipt-80mm * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="active-print-target">
+      ${processedHtml}
+    </div>
+  </body>
+</html>`;
+
         const pdfWin = new BrowserWindow({
           show: false,
           width: 800,
           height: 1200,
           webPreferences: {
             nodeIntegration: false,
-            contextIsolation: true
+            contextIsolation: true,
+            webSecurity: false,
+            allowRunningInsecureContent: true
           }
         });
 
-        const fontCssPath = path.join(__dirname, 'renderer', 'styles', 'fonts.css').replace(/\\/g, '/');
-        const printCssPath = path.join(__dirname, 'renderer', 'styles', 'print.css').replace(/\\/g, '/');
+        const tempHtmlPath = path.join(app.getPath('temp'), `print_render_${Date.now()}.html`);
+        fs.writeFileSync(tempHtmlPath, fullHtml, 'utf8');
 
-        const fullHtml = `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="UTF-8">
-              <link rel="stylesheet" href="file:///${fontCssPath}">
-              <link rel="stylesheet" href="file:///${printCssPath}">
-              <style>
-                @page { size: ${options.pageSize || 'A5'} portrait; margin: 4mm 5mm; }
-                body { 
-                  margin: 0; 
-                  padding: 0; 
-                  background: #fff; 
-                  color: #000; 
-                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-                  -webkit-print-color-adjust: exact; 
-                  print-color-adjust: exact; 
-                }
-                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
-                .receipt-80mm { width: 100% !important; max-width: 138mm !important; margin: 0 auto !important; padding: 4px 6px !important; }
-              </style>
-            </head>
-            <body>
-              <div class="active-print-target">
-                ${options.html}
-              </div>
-            </body>
-          </html>
-        `;
-
-        await pdfWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
-        await new Promise(res => setTimeout(res, 200));
+        await pdfWin.loadFile(tempHtmlPath);
+        // Wait for font and layout computation
+        await pdfWin.webContents.executeJavaScript(`
+          document.fonts ? document.fonts.ready : Promise.resolve()
+        `);
+        await new Promise(res => setTimeout(res, 250));
 
         pdfData = await pdfWin.webContents.printToPDF({
           pageSize: options.pageSize || 'A5',
           printBackground: true,
           margins: { marginType: 'custom', top: 0, bottom: 0, left: 0, right: 0 }
         });
+
         pdfWin.destroy();
+        try { fs.unlinkSync(tempHtmlPath); } catch (_) {}
       } else {
         const pdfOptions = {
           pageSize: options.pageSize || 'A5',

@@ -2308,30 +2308,30 @@ window.SalesForm = {
             ${logoHtml}
           </div>
           <div style="flex: 1; text-align: center;">
-            <h1 style="font-family: inherit; font-size: 22px; font-weight: 900; margin: 0; line-height: 1.1; color: #000; text-transform: uppercase; letter-spacing: -0.3px;">${this.settings.company_name || 'Akhtar & Sons'}</h1>
-            <div style="font-size: 10px; font-weight: 600; margin: 2px 0 3px 0; color: #000;">${this.settings.address || 'B-99, Lalarukh Basti, Wah Cantt'} ${this.settings.phone || '0310-5123788'}</div>
+            <h1 style="font-family: inherit; font-size: 20px; font-weight: 800; margin: 0; line-height: 1.15; color: #000; text-transform: uppercase; letter-spacing: -0.2px;">${this.settings.company_name || 'Akhtar & Sons'}</h1>
+            <div style="font-size: 9.5px; font-weight: 500; margin: 2px 0 3px 0; color: #000;">${this.settings.address || 'B-99, Lalarukh Basti, Wah Cantt'} ${this.settings.phone || '0310-5123788'}</div>
             <div style="border-top: 1px solid #000; margin: 2px auto 3px auto; width: 92%;"></div>
-            <div style="font-family: inherit; font-size: 13px; font-weight: 800; color: #000; text-transform: uppercase; letter-spacing: 0.5px;">Sales Invoice</div>
+            <div style="font-family: inherit; font-size: 12px; font-weight: 700; color: #000; text-transform: uppercase; letter-spacing: 0.5px;">Sales Invoice</div>
           </div>
         </div>
 
         <!-- 2-Column Metadata Section (No Booking Days) -->
-        <div style="display: flex; justify-content: space-between; font-size: 10px; line-height: 1.4; margin-bottom: 8px; color: #000;">
+        <div style="display: flex; justify-content: space-between; font-size: 9.5px; line-height: 1.4; margin-bottom: 8px; color: #000;">
           <!-- Left Column -->
           <div style="flex: 1; padding-right: 8px;">
-            <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Invoice #</span> <span style="font-weight: 800; font-size: 10.5px;">${invoiceNo}</span></div>
-            <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Booked By:</span> <span style="font-weight: 700; text-transform: uppercase;">${salesmanName} ${salesmanContact}</span></div>
-            <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Delivered By:</span> <span>SELF</span></div>
-            <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Method:</span> <span style="font-weight: 800; text-transform: uppercase;">${paymentMethodStr}</span></div>
-            <div style="display: flex;"><span style="width: 85px; font-weight: 700;">Remarks:</span> <span>${paymentRemarks}</span></div>
+            <div style="display: flex;"><span style="width: 85px; font-weight: 600;">Invoice #</span> <span style="font-weight: 700; font-size: 10px;">${invoiceNo}</span></div>
+            <div style="display: flex;"><span style="width: 85px; font-weight: 600;">Booked By:</span> <span style="font-weight: 600; text-transform: uppercase;">${salesmanName} ${salesmanContact}</span></div>
+            <div style="display: flex;"><span style="width: 85px; font-weight: 600;">Delivered By:</span> <span>SELF</span></div>
+            <div style="display: flex;"><span style="width: 85px; font-weight: 600;">Method:</span> <span style="font-weight: 700; text-transform: uppercase;">${paymentMethodStr}</span></div>
+            <div style="display: flex;"><span style="width: 85px; font-weight: 600;">Remarks:</span> <span>${paymentRemarks}</span></div>
           </div>
 
           <!-- Right Column -->
           <div style="flex: 1.15;">
-            <div style="display: flex; margin-top: 1px;"><span style="width: 75px; font-weight: 700;">Sale To:</span> <span style="font-weight: 800; font-size: 10.5px; text-transform: uppercase;">${shopDisplay}</span></div>
-            <div style="display: flex; margin-top: 1px;"><span style="width: 75px; font-weight: 700;">Address:</span> <span style="font-weight: 600; text-transform: uppercase;">${shopAddress}</span></div>
-            <div style="display: flex;"><span style="width: 75px; font-weight: 700;">Contact Info:</span> <span>${shopPhone}</span></div>
-            <div style="display: flex;"><span style="width: 75px; font-weight: 700;">CNIC - NTN #</span> <span>${data.cnic_ntn || data.cnic || data.ntn || (document.getElementById('sf-cnic-ntn')?.value || '').trim() || '-'}</span></div>
+            <div style="display: flex; margin-top: 1px;"><span style="width: 75px; font-weight: 600;">Sale To:</span> <span style="font-weight: 700; font-size: 10px; text-transform: uppercase;">${shopDisplay}</span></div>
+            <div style="display: flex; margin-top: 1px;"><span style="width: 75px; font-weight: 600;">Address:</span> <span style="font-weight: 500; text-transform: uppercase;">${shopAddress}</span></div>
+            <div style="display: flex;"><span style="width: 75px; font-weight: 600;">Contact Info:</span> <span>${shopPhone}</span></div>
+            <div style="display: flex;"><span style="width: 75px; font-weight: 600;">CNIC - NTN #</span> <span>${data.cnic_ntn || data.cnic || data.ntn || (document.getElementById('sf-cnic-ntn')?.value || '').trim() || '-'}</span></div>
           </div>
         </div>
 
@@ -2339,20 +2339,20 @@ window.SalesForm = {
         <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 8.5px; margin-bottom: 8px; color: #000;">
           <thead>
             <tr style="border-bottom: 1px solid #000; background: #fff;">
-              <th style="border: 1px solid #000; padding: 2.5px 2px; width: 5%; text-align: center; font-weight: 900; font-size: 8.5px;">Sr. #</th>
-              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 38%; text-align: left; font-weight: 900; font-size: 8.5px;">Product Description</th>
-              <th style="border: 1px solid #000; padding: 2.5px 2px; width: 8%; text-align: center; font-weight: 900; font-size: 8.5px;">Qty</th>
-              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 11%; text-align: right; font-weight: 900; font-size: 8.5px;">Rate</th>
-              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 12%; text-align: right; font-weight: 900; font-size: 8.5px;">Gross Value</th>
-              <th style="border: 1px solid #000; padding: 2.5px 2px; width: 8%; text-align: right; font-weight: 900; font-size: 8.5px;">Discount</th>
-              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 9%; text-align: right; font-weight: 900; font-size: 8.5px;">GST (${hasReceiptTax ? receiptTaxPercent + '%' : '0%'})</th>
-              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 12%; text-align: right; font-weight: 900; font-size: 8.5px;">Net Value</th>
+              <th style="border: 1px solid #000; padding: 2.5px 2px; width: 5%; text-align: center; font-weight: 700; font-size: 8.5px;">Sr. #</th>
+              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 38%; text-align: left; font-weight: 700; font-size: 8.5px;">Product Description</th>
+              <th style="border: 1px solid #000; padding: 2.5px 2px; width: 8%; text-align: center; font-weight: 700; font-size: 8.5px;">Qty</th>
+              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 11%; text-align: right; font-weight: 700; font-size: 8.5px;">Rate</th>
+              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 12%; text-align: right; font-weight: 700; font-size: 8.5px;">Gross Value</th>
+              <th style="border: 1px solid #000; padding: 2.5px 2px; width: 8%; text-align: right; font-weight: 700; font-size: 8.5px;">Discount</th>
+              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 9%; text-align: right; font-weight: 700; font-size: 8.5px;">GST (${hasReceiptTax ? receiptTaxPercent + '%' : '0%'})</th>
+              <th style="border: 1px solid #000; padding: 2.5px 3px; width: 12%; text-align: right; font-weight: 700; font-size: 8.5px;">Net Value</th>
             </tr>
           </thead>
           <tbody>
             ${rowsHtml}
             <!-- Totals Row -->
-            <tr style="border-top: 1px solid #000; font-weight: 800; font-size: 8.5px; background: #fff;">
+            <tr style="border-top: 1px solid #000; font-weight: 700; font-size: 8.5px; background: #fff;">
               <td colspan="2" style="border: 1px solid #000; padding: 2.5px 3px; text-align: left;">Items: ${items.length}</td>
               <td style="border: 1px solid #000; padding: 2.5px 2px; text-align: center;">${totalQty}</td>
               <td style="border: 1px solid #000; padding: 2.5px 2px;"></td>
@@ -2390,17 +2390,17 @@ window.SalesForm = {
               <span style="font-weight: 700; width: 75px; text-align: right;">${app.formatAmount(totalGst)}</span>
             </div>` : ''}
             <div style="display: flex; justify-content: space-between; padding: 2px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 2px; font-size: 11px;">
-              <span style="font-weight: 800;">Net Inv. Amount</span>
-              <span style="font-weight: 900; width: 75px; text-align: right;">${app.formatAmount(grandTotal)}</span>
+              <span style="font-weight: 700;">Net Inv. Amount</span>
+              <span style="font-weight: 800; width: 75px; text-align: right;">${app.formatAmount(grandTotal)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; padding: 1.5px 0;">
-              <span style="font-weight: 700;">Received</span>
-              <span style="font-weight: 800; width: 75px; text-align: right;">${app.formatAmount(receivedAmount)}</span>
+              <span style="font-weight: 600;">Received</span>
+              <span style="font-weight: 700; width: 75px; text-align: right;">${app.formatAmount(receivedAmount)}</span>
             </div>
             ${pendingAmount > 0 ? `
             <div style="display: flex; justify-content: space-between; padding: 1.5px 0; color: #b91c1c;">
-              <span style="font-weight: 800;">Pending Due</span>
-              <span style="font-weight: 900; width: 75px; text-align: right;">${app.formatAmount(pendingAmount)}</span>
+              <span style="font-weight: 700;">Pending Due</span>
+              <span style="font-weight: 800; width: 75px; text-align: right;">${app.formatAmount(pendingAmount)}</span>
             </div>` : ''}
           </div>
         </div>
