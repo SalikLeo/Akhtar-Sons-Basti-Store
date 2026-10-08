@@ -648,7 +648,6 @@ window.SalesForm = {
 
     dropdown.innerHTML = this.filteredShops.map((shop, idx) => {
       const isHighlighted = idx === this.highlightedShopIndex;
-      const addr = shop.address || shop.city || '';
 
       return `
         <div id="sf-shop-item-${idx}" 
@@ -659,7 +658,6 @@ window.SalesForm = {
             <span class="text-xs font-black truncate ${isHighlighted ? 'text-slate-950' : 'text-slate-900'}">${shop.name}</span>
           </div>
           <div class="flex items-center gap-2 shrink-0 text-right">
-            ${addr ? `<span class="text-[9.5px] font-bold ${isHighlighted ? 'text-slate-950 bg-slate-950/10' : 'text-slate-500 bg-slate-100'} px-1.5 py-0.2 rounded truncate max-w-[140px]">${addr}</span>` : ''}
             ${shop.phone ? `<span class="text-[10px] font-bold ${isHighlighted ? 'text-slate-950' : 'text-slate-600'}">${shop.phone}</span>` : ''}
           </div>
         </div>
