@@ -12,6 +12,10 @@ window.Shops = {
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Manage Retail Shops, Routes & Accounts</p>
         </div>
         <div class="flex items-center gap-2.5 shrink-0">
+          <button type="button" onclick="Shops.exportShopsReportPDF()" class="h-10 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer">
+            <i data-lucide="file-down" class="w-4 h-4 text-slate-600"></i>
+            <span>Save as PDF</span>
+          </button>
           <button type="button" onclick="Shops.printShopsReport()" class="h-10 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer">
             <i data-lucide="printer" class="w-4 h-4 text-amber-400"></i>
             <span>Print Summary</span>
@@ -165,9 +169,15 @@ window.Shops = {
                 <p id="shop-ledger-subtitle" class="text-[11px] text-slate-400 font-medium">Sales & Transaction History</p>
               </div>
             </div>
-            <button type="button" onclick="Shops.closeLedgerModal()" class="text-slate-400 hover:text-white transition-colors cursor-pointer">
-              <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="Shops.exportActiveLedgerPDF()" class="h-8 px-3 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all cursor-pointer" title="Save Ledger as PDF">
+                <i data-lucide="file-down" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>Save PDF</span>
+              </button>
+              <button type="button" onclick="Shops.closeLedgerModal()" class="text-slate-400 hover:text-white transition-colors cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+              </button>
+            </div>
           </div>
 
           <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-4 shrink-0">
@@ -325,6 +335,9 @@ window.Shops = {
             <div class="flex items-center justify-center gap-1">
               <button type="button" onclick="Shops.openLedgerModal(${shop.id})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="View Invoices & Ledger">
                 <i data-lucide="file-text" class="w-4 h-4"></i>
+              </button>
+              <button type="button" onclick="Shops.exportShopLedgerPDF(${shop.id})" class="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Save Ledger as PDF">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
               </button>
               <button type="button" onclick="Shops.openShopModal(${shop.id})" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer" title="Edit Shop">
                 <i data-lucide="edit-2" class="w-4 h-4"></i>
@@ -518,5 +531,211 @@ window.Shops = {
 
   printShopLedger() {
     window.print();
+  },
+
+  async exportActiveLedgerPDF() {
+    if (this.activeLedgerShop && this.activeLedgerShop.id) {
+      await this.exportShopLedgerPDF(this.activeLedgerShop.id);
+    }
+  },
+
+  async exportShopLedgerPDF(shopId) {
+    const shop = this.shops.find(s => s.id === shopId);
+    if (!shop) return;
+
+    app.showLoading();
+    try {
+      const settings = await window.api.getSettings();
+      const shopSales = this.proposals.filter(p => 
+        (p.shop_name && p.shop_name.toLowerCase() === shop.name.toLowerCase()) || 
+        (p.customer_name && p.customer_name.toLowerCase() === shop.name.toLowerCase())
+      );
+
+      const totalInvoiced = shopSales.reduce((acc, p) => acc + (p.retail_total || 0), 0);
+      const totalReceived = shopSales.reduce((acc, p) => acc + (p.received_amount || 0), 0);
+      const balance = shop.amount || 0;
+
+      const rowHtml = shopSales.length === 0 
+        ? `<tr><td colspan="6" style="border: 1px solid #000; padding: 12px; text-align: center; color: #666; font-size: 12px;">No sales invoices recorded for this shop.</td></tr>`
+        : shopSales.map((s, idx) => `
+          <tr>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-size: 12px; color: #000; text-align: center;">${idx + 1}</td>
+            <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12px; color: #000;">${app.formatDate(s.date)}</td>
+            <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12px; color: #000; font-weight: 700;">#${s.proposal_number}</td>
+            <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12px; color: #000;">${s.salesman_name || s.seller_name || '-'}</td>
+            <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12px; text-align: right; color: #000; font-weight: 700;">${app.formatAmount(s.retail_total)}</td>
+            <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12px; text-align: right; color: #000; font-weight: 700;">${app.formatAmount(s.received_amount || s.retail_total)}</td>
+          </tr>
+        `).join('');
+
+      const html = `
+        <div class="receipt-80mm" style="width: 100%; max-width: 780px; margin: 0 auto; padding: 20px 24px; background: #fff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #000; box-sizing: border-box; font-size: 13px; line-height: 1.5; border: 1.5px solid #000; border-radius: 8px; -webkit-font-smoothing: antialiased;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 14px;">
+            <h1 style="font-size: 26px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.8px; color: #000; line-height: 1.2;">${settings.company_name || 'Akhtar & Sons'}</h1>
+            <p style="font-size: 13px; margin: 3px 0 1px; font-weight: 500; color: #000; line-height: 1.4;">${settings.address || 'B-99, Lalarukh Basti, Wah Cantt'}</p>
+            <p style="font-size: 13px; margin: 1px 0 0; font-weight: 600; color: #000;">Contact: ${settings.phone || '0310-5123788'}</p>
+            <div style="margin-top: 6px;">
+              <span style="display: inline-block; border: 1.5px solid #000; padding: 3px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; border-radius: 4px; color: #000; background: #fff;">SHOP ACCOUNT STATEMENT / LEDGER</span>
+            </div>
+          </div>
+
+          <!-- Shop Info Card -->
+          <div style="display: flex; justify-content: space-between; gap: 20px; font-size: 12.5px; line-height: 1.6; color: #000; margin-bottom: 14px; background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px solid #000;">
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Shop Name:</span> <span style="font-weight: 800; font-size: 14px; color: #000;">${shop.name}</span></div>
+              ${shop.phone ? `<div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Phone:</span> <span style="font-weight: 500; color: #000;">${shop.phone}</span></div>` : ''}
+              ${shop.ntn ? `<div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">NTN:</span> <span style="font-weight: 600; color: #000;">${shop.ntn}</span></div>` : ''}
+            </div>
+            <div style="flex: 1; border-left: 1px solid #000; padding-left: 16px;">
+              <div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Address:</span> <span style="font-weight: 500; color: #000;">${shop.address || shop.city || '-'}</span></div>
+              <div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Statement Date:</span> <span style="font-weight: 500; color: #000;">${app.formatDate(new Date().toISOString())}</span></div>
+            </div>
+          </div>
+
+          <!-- Invoices Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1.5px solid #000; color: #000; background: #fff;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1.5px solid #000; background: #fff;">
+                <th style="border: 1px solid #000; padding: 7px 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; text-align: center; width: 6%;">#</th>
+                <th style="border: 1px solid #000; padding: 7px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; width: 20%;">Date</th>
+                <th style="border: 1px solid #000; padding: 7px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; width: 22%;">Invoice #</th>
+                <th style="border: 1px solid #000; padding: 7px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; width: 22%;">Salesman</th>
+                <th style="border: 1px solid #000; padding: 7px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; text-align: right; width: 15%;">Invoiced (Rs.)</th>
+                <th style="border: 1px solid #000; padding: 7px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; text-align: right; width: 15%;">Received (Rs.)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowHtml}
+            </tbody>
+          </table>
+
+          <!-- Summary Box -->
+          <div style="margin-left: auto; width: 340px; margin-bottom: 14px; font-size: 13px; line-height: 1.8; color: #000;">
+            <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+              <span style="font-weight: 500; color: #000;">Total Invoiced:</span>
+              <span style="font-weight: 700; color: #000;">${app.formatCurrency(totalInvoiced)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+              <span style="font-weight: 500; color: #000;">Total Received:</span>
+              <span style="font-weight: 700; color: #000;">${app.formatCurrency(totalReceived)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 6px 0 3px 0; font-size: 15px; font-weight: 800; border-top: 2px solid #000; margin-top: 4px; color: #000;">
+              <span>OUTSTANDING BALANCE:</span>
+              <span>${app.formatCurrency(balance)}</span>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 16px; border-top: 1.5px solid #000; padding-top: 8px; font-size: 12px; color: #000;">
+            <p style="margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #000;">Thank you for your business!</p>
+          </div>
+        </div>
+      `;
+
+      app.hideLoading();
+      const cleanShop = (shop.name || 'Shop').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `Ledger_${cleanShop}.pdf`;
+      await app.savePDF({
+        html: html,
+        defaultFilename: filename,
+        title: `Save Shop Ledger (${shop.name}) as PDF`
+      });
+    } catch (err) {
+      console.error(err);
+      app.hideLoading();
+      app.showAlert("Error generating shop ledger PDF.");
+    }
+  },
+
+  async exportShopsReportPDF() {
+    app.showLoading();
+    try {
+      const settings = await window.api.getSettings();
+      const shops = this.currentFilteredShops || this.shops || [];
+
+      let totalOrders = 0;
+      let totalSales = 0;
+      let totalDue = 0;
+
+      const rowHtml = shops.map((shop, idx) => {
+        const shopSales = this.proposals.filter(p => 
+          (p.shop_name && p.shop_name.toLowerCase() === shop.name.toLowerCase()) || 
+          (p.customer_name && p.customer_name.toLowerCase() === shop.name.toLowerCase())
+        );
+        const invoiced = shopSales.reduce((acc, p) => acc + (p.retail_total || 0), 0);
+        const balance = shop.amount || 0;
+
+        totalOrders += shopSales.length;
+        totalSales += invoiced;
+        totalDue += balance;
+
+        return `
+          <tr>
+            <td style="border: 1px solid #000; padding: 6px 6px; font-size: 12px; text-align: center; color: #000;">${idx + 1}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-size: 12px; font-weight: 700; color: #000;">${shop.name}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-size: 11.5px; color: #000;">${shop.phone || '-'}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-size: 11.5px; color: #000;">${shop.address || shop.city || '-'}</td>
+            <td style="border: 1px solid #000; padding: 6px 6px; font-size: 12px; text-align: center; font-weight: 700; color: #000;">${shopSales.length}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-size: 12px; text-align: right; font-weight: 700; color: #000;">${app.formatAmount(invoiced)}</td>
+            <td style="border: 1px solid #000; padding: 6px 8px; font-size: 12px; text-align: right; font-weight: 700; color: #000;">${app.formatAmount(balance)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const html = `
+        <div class="receipt-80mm" style="width: 100%; max-width: 820px; margin: 0 auto; padding: 20px 24px; background: #fff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #000; box-sizing: border-box; font-size: 13px; line-height: 1.5; border: 1.5px solid #000; border-radius: 8px;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 14px;">
+            <h1 style="font-size: 26px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.8px; color: #000;">${settings.company_name || 'Akhtar & Sons'}</h1>
+            <p style="font-size: 13px; margin: 3px 0 1px; font-weight: 500; color: #000;">${settings.address || 'B-99, Lalarukh Basti, Wah Cantt'}</p>
+            <p style="font-size: 13px; margin: 1px 0 0; font-weight: 600; color: #000;">Contact: ${settings.phone || '0310-5123788'}</p>
+            <div style="margin-top: 6px;">
+              <span style="display: inline-block; border: 1.5px solid #000; padding: 3px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; border-radius: 4px; color: #000;">REGISTERED SHOPS & ACCOUNTS SUMMARY</span>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 10px; font-size: 12px; font-weight: 600; color: #000; text-align: right;">
+            Date: ${app.formatDate(new Date().toISOString())} | Total Shops: ${shops.length}
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1.5px solid #000; color: #000; background: #fff;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1.5px solid #000; background: #fff;">
+                <th style="border: 1px solid #000; padding: 7px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: center; width: 4%;">#</th>
+                <th style="border: 1px solid #000; padding: 7px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; width: 26%;">Shop Name</th>
+                <th style="border: 1px solid #000; padding: 7px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; width: 15%;">Phone</th>
+                <th style="border: 1px solid #000; padding: 7px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; width: 23%;">Address</th>
+                <th style="border: 1px solid #000; padding: 7px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: center; width: 8%;">Orders</th>
+                <th style="border: 1px solid #000; padding: 7px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: right; width: 12%;">Invoiced (Rs.)</th>
+                <th style="border: 1px solid #000; padding: 7px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: right; width: 12%;">Due (Rs.)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowHtml}
+            </tbody>
+            <tfoot>
+              <tr style="border-top: 2px solid #000; font-weight: 800; font-size: 12px; background: #fafafa;">
+                <td colspan="4" style="border: 1px solid #000; padding: 8px 10px; text-align: right;">TOTALS:</td>
+                <td style="border: 1px solid #000; padding: 8px 6px; text-align: center;">${totalOrders}</td>
+                <td style="border: 1px solid #000; padding: 8px 8px; text-align: right;">${app.formatAmount(totalSales)}</td>
+                <td style="border: 1px solid #000; padding: 8px 8px; text-align: right;">${app.formatAmount(totalDue)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+
+      app.hideLoading();
+      await app.savePDF({
+        html: html,
+        defaultFilename: `Shops_Summary_${new Date().toISOString().split('T')[0]}.pdf`,
+        title: 'Save Shops Summary as PDF'
+      });
+    } catch (err) {
+      console.error(err);
+      app.hideLoading();
+      app.showAlert("Error generating shops summary PDF.");
+    }
   }
 };

@@ -423,9 +423,10 @@ window.Proposals = {
             <td class="px-4 py-1 text-right font-medium">
                 <div class="flex items-center justify-end gap-1.5 transition-opacity">
                     <button onclick="Proposals.viewReceipt(${s.id})" class="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-all cursor-pointer" title="View Receipt"><i data-lucide="eye" class="w-4 h-4"></i></button>
+                    <button onclick="Proposals.exportSalePDF(${s.id})" class="p-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all cursor-pointer" title="Save as PDF"><i data-lucide="file-down" class="w-4 h-4"></i></button>
                     <button onclick="Proposals.editSale(${s.id})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer" title="Return or Edit Sale"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
                     <button onclick="Proposals.directPrint(${s.id})" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all cursor-pointer" title="Direct Print"><i data-lucide="printer" class="w-4 h-4"></i></button>
-                    <button onclick="Proposals.deleteSale(${s.id})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer" title="Delete Sale"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <button onclick="Proposals.deleteSale(${s.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer" title="Delete Sale"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>
             </td>
         </tr>
@@ -579,6 +580,33 @@ window.Proposals = {
         console.error(e);
         app.hideLoading();
         app.showAlert("Error printing receipt.");
+    }
+  },
+
+  async exportSalePDF(id) {
+    app.showLoading();
+    try {
+      const sale = await window.api.getProposal(id);
+      if (!sale) throw new Error("Sale not found");
+
+      if (!SalesForm.settings || !SalesForm.settings.company_name) {
+        SalesForm.settings = await window.api.getSettings();
+      }
+
+      const receiptHtml = await SalesForm.generateReceipt(sale);
+      app.hideLoading();
+
+      const cleanShop = (sale.shop_name || sale.customer_name || 'Customer').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `${sale.proposal_number || 'INV'}_${cleanShop}.pdf`;
+      await app.savePDF({
+        html: receiptHtml,
+        defaultFilename: filename,
+        title: `Save Invoice #${sale.proposal_number} as PDF`
+      });
+    } catch (e) {
+      console.error(e);
+      app.hideLoading();
+      app.showAlert("Error generating PDF.");
     }
   },
 

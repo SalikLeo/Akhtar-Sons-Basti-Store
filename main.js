@@ -195,37 +195,101 @@ ipcMain.handle('clear-app-data', async () => {
 ipcMain.handle('get-all-kv', () => db.getAllKv());
 ipcMain.handle('set-kv', (event, key, value) => db.setKv(key, value));
 ipcMain.handle('save-all-kv', (event, data) => db.saveAllKv(data));
-ipcMain.handle('generate-pdf', async (event, filename) => {
+// PDF Generation & Local File Saving IPC
+const handleSavePdf = async (event, data = {}) => {
   const win = BrowserWindow.fromWebContents(event.sender);
+  const options = typeof data === 'string' ? { defaultFilename: data } : (data || {});
+  const defaultPath = options.defaultFilename || options.filename || `Bill_${Date.now()}.pdf`;
+
   const result = await dialog.showSaveDialog(win, {
-    title: 'Save Quotation as PDF',
-    defaultPath: filename,
+    title: options.title || 'Save Bill as PDF',
+    defaultPath: defaultPath,
     filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
   });
 
   if (!result.canceled && result.filePath) {
     try {
+      let pdfData;
+      if (options.html) {
+        const pdfWin = new BrowserWindow({
+          show: false,
+          width: 800,
+          height: 1200,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        });
+
+        const fontCssPath = path.join(__dirname, 'renderer', 'styles', 'fonts.css').replace(/\\/g, '/');
+        const printCssPath = path.join(__dirname, 'renderer', 'styles', 'print.css').replace(/\\/g, '/');
+
+        const fullHtml = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <link rel="stylesheet" href="file:///${fontCssPath}">
+              <link rel="stylesheet" href="file:///${printCssPath}">
+              <style>
+                @page { size: ${options.pageSize || 'A5'} portrait; margin: 4mm 5mm; }
+                body { 
+                  margin: 0; 
+                  padding: 0; 
+                  background: #fff; 
+                  color: #000; 
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                  -webkit-print-color-adjust: exact; 
+                  print-color-adjust: exact; 
+                }
+                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
+                .receipt-80mm { width: 100% !important; max-width: 138mm !important; margin: 0 auto !important; padding: 4px 6px !important; }
+              </style>
+            </head>
+            <body>
+              <div class="active-print-target">
+                ${options.html}
+              </div>
+            </body>
+          </html>
+        `;
+
+        await pdfWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
+        await new Promise(res => setTimeout(res, 200));
+
+        pdfData = await pdfWin.webContents.printToPDF({
+          pageSize: options.pageSize || 'A5',
+          printBackground: true,
+          margins: { marginType: 'custom', top: 0, bottom: 0, left: 0, right: 0 }
+        });
+        pdfWin.destroy();
+      } else {
         const pdfOptions = {
-            pageSize: 'A5',
-            printBackground: true,
-            margins: {
-                marginType: 'custom',
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0
-            }
+          pageSize: options.pageSize || 'A5',
+          printBackground: true,
+          margins: {
+            marginType: 'custom',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0
+          }
         };
-        const pdfData = await event.sender.printToPDF(pdfOptions);
-        fs.writeFileSync(result.filePath, pdfData);
-        return { success: true, path: result.filePath };
+        pdfData = await event.sender.printToPDF(pdfOptions);
+      }
+
+      fs.writeFileSync(result.filePath, pdfData);
+      return { success: true, path: result.filePath };
     } catch (err) {
-        console.error(err);
-        return { success: false, error: err.message };
+      console.error('save-pdf error:', err);
+      return { success: false, error: err.message };
     }
   }
-  return { success: false };
-});
+  return { success: false, canceled: true };
+};
+
+ipcMain.handle('save-pdf', handleSavePdf);
+ipcMain.handle('generate-pdf', handleSavePdf);
 
 // Thermal Printer IPC
 ipcMain.handle('get-printers', async (event) => {

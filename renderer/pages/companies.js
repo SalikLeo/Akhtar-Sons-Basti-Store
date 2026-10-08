@@ -1035,6 +1035,9 @@ window.Companies = {
                     <button onclick="Companies.viewTxnDetails('${t.id}', ${companyId})" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="View Details">
                         <i data-lucide="eye" class="w-4 h-4"></i>
                     </button>
+                    <button onclick="Companies.exportVoucherPDF('${t.id}', ${companyId})" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Save as PDF">
+                        <i data-lucide="file-down" class="w-4 h-4"></i>
+                    </button>
                     <button onclick="Companies.printVoucher('${t.id}', ${companyId})" class="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all" title="Print Voucher">
                         <i data-lucide="printer" class="w-4 h-4"></i>
                     </button>
@@ -1125,6 +1128,9 @@ window.Companies = {
                     <div class="flex items-center justify-end gap-1.5 transition-opacity">
                         <button onclick="Companies.viewTxnDetails('${t.id}', ${t.entityId})" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="View Details">
                             <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="Companies.exportVoucherPDF('${t.id}', ${t.entityId})" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Save as PDF">
+                            <i data-lucide="file-down" class="w-4 h-4"></i>
                         </button>
                         <button onclick="Companies.printVoucher('${t.id}', ${t.entityId})" class="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all" title="Print Voucher">
                             <i data-lucide="printer" class="w-4 h-4"></i>
@@ -1697,10 +1703,13 @@ window.Companies = {
               <button onclick="Companies.viewTxnDetails('${t.id}', ${t.entityId})" class="p-1.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="View Details">
                 <i data-lucide="eye" class="w-4 h-4"></i>
               </button>
+              <button onclick="Companies.exportVoucherPDF('${t.id}', ${t.entityId})" class="p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Save as PDF">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+              </button>
               <button onclick="Companies.printVoucher('${t.id}', ${t.entityId})" class="p-1.5 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Print Voucher">
                 <i data-lucide="printer" class="w-4 h-4"></i>
               </button>
-              <button onclick="Companies.handleDeleteTransaction('${t.id}', ${t.entityId})" class="p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete Transaction">
+              <button onclick="Companies.handleDeleteTransaction('${t.id}', ${t.entityId})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete Transaction">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
               </button>
             </div>
@@ -2431,6 +2440,135 @@ window.Companies = {
         console.error(err);
         app.hideLoading();
         app.showAlert("Error generating voucher.");
+    }
+  },
+
+  async exportVoucherPDF(txnId, companyId) {
+    const company = this.dataList.find(c => c.id === companyId);
+    if (!company) return;
+
+    const txnKey = `${this.currentTab}-${company.id}-transactions`;
+    const transactions = window.storage.get(txnKey) || [];
+    const txn = transactions.find(t => t.id == txnId);
+    if (!txn) return;
+
+    app.showLoading();
+    try {
+        const settings = await window.api.getSettings();
+        const items = txn.items && txn.items.length > 0 ? txn.items : [{ name: txn.description || 'Purchase', price: txn.amount }];
+
+        const txnIndex = transactions.findIndex(t => t.id == txnId);
+        let invoiceDisplay = '';
+        if (txn.invoice_no) {
+            invoiceDisplay = `${txn.invoice_prefix || (this.currentTab === 'companies' ? 'CMP' : 'INV')}-${txn.invoice_no}`;
+        } else {
+            const invNo = transactions.length - txnIndex;
+            const invPrefix = this.currentTab === 'companies' ? 'CMP' : 'INV';
+            invoiceDisplay = `${invPrefix}-${invNo}`;
+        }
+
+        const rowHtml = items.map((item) => `
+            <tr>
+                <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12.5px; color: #000; font-weight: 600; word-break: break-all; line-height: 1.3;">
+                    ${item.name}
+                </td>
+                <td style="border: 1px solid #000; padding: 6px 8px; font-size: 12.5px; text-align: center; color: #000; font-weight: 700; line-height: 1.3;">${item.qty || item.total_boxes || 1}</td>
+                <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12px; text-align: right; color: #000; font-weight: 500; line-height: 1.3;">${app.formatAmount(item.box_cost || item.price || item.carton_cost)}</td>
+                <td style="border: 1px solid #000; padding: 6px 10px; font-size: 12.5px; text-align: right; color: #000; font-weight: 700; line-height: 1.3;">${app.formatAmount(item.lineTotal || item.price)}</td>
+            </tr>
+        `).join('');
+
+        const html = `
+            <div class="receipt-80mm" style="width: 100%; max-width: 780px; margin: 0 auto; padding: 20px 24px; background: #fff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #000; box-sizing: border-box; font-size: 13px; line-height: 1.5; border: 1.5px solid #000; border-radius: 8px; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;">
+                <!-- Header -->
+                <div style="text-align: center; margin-bottom: 14px;">
+                    <h1 style="font-size: 26px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.8px; color: #000; line-height: 1.2; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${settings.company_name || 'Akhtar & Sons'}</h1>
+                    <p style="font-size: 13px; margin: 3px 0 1px; font-weight: 500; color: #000; line-height: 1.4;">${settings.address || 'B-99, Lalarukh Basti, Wah Cantt'}</p>
+                    <p style="font-size: 13px; margin: 1px 0 0; font-weight: 600; color: #000;">Contact: ${settings.phone || '0310-5123788'}</p>
+                    <div style="margin-top: 6px;">
+                        <span style="display: inline-block; border: 1.5px solid #000; padding: 3px 18px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; border-radius: 4px; color: #000; background: #fff;">PURCHASE RECEIPT / VOUCHER</span>
+                    </div>
+                </div>
+                
+                <!-- Metadata Card -->
+                <div style="display: flex; justify-content: space-between; gap: 20px; font-size: 12.5px; line-height: 1.6; color: #000; margin-bottom: 14px; background: #fff; padding: 8px 12px; border-radius: 6px; border: 1px solid #000;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Invoice #:</span> <span style="font-weight: 700; font-size: 13.5px; color: #000;">${invoiceDisplay}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Date & Time:</span> <span style="font-weight: 500; color: #000;">${app.formatDateTime(txn.date)}</span></div>
+                    </div>
+                    <div style="flex: 1; border-left: 1px solid #000; padding-left: 16px;">
+                        <div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Supplier:</span> <span style="font-weight: 600; color: #000;">${company.name}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Type:</span> <span style="font-weight: 600; color: #000;">${txn.type.toUpperCase()}</span></div>
+                        ${company.phone ? `<div style="display: flex; justify-content: space-between;"><span style="font-weight: 700; color: #000;">Phone:</span> <span style="font-weight: 500; color: #000;">${company.phone}</span></div>` : ''}
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1.5px solid #000; color: #000; background: #fff;">
+                    <thead>
+                        <tr style="text-align: left; border-bottom: 1.5px solid #000; background: #fff;">
+                            <th style="border: 1px solid #000; padding: 7px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #000; width: 55%;">Item</th>
+                            <th style="border: 1px solid #000; padding: 7px 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; text-align: center; width: 12%; color: #000;">Qty</th>
+                            <th style="border: 1px solid #000; padding: 7px 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; text-align: right; width: 16%; color: #000;">Rate (Rs.)</th>
+                            <th style="border: 1px solid #000; padding: 7px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; text-align: right; width: 17%; color: #000;">Total (Rs.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowHtml}
+                    </tbody>
+                </table>
+
+                <!-- Summary Box -->
+                <div style="margin-left: auto; width: 340px; margin-bottom: 14px; font-size: 13px; line-height: 1.8; color: #000;">
+                    <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+                        <span style="font-weight: 500; color: #000;">Subtotal:</span>
+                        <span style="font-weight: 600; color: #000;">${app.formatCurrency(txn.subtotal || txn.amount)}</span>
+                    </div>
+                    ${txn.discount > 0 ? `
+                    <div style="display: flex; justify-content: space-between; padding: 1px 0; color: #000;">
+                        <span style="font-weight: 500; color: #000;">Discount:</span>
+                        <span style="font-weight: 600; color: #000;">-${app.formatCurrency(txn.discount)}</span>
+                    </div>
+                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0 3px 0; font-size: 16px; font-weight: 800; border-top: 2px solid #000; margin-top: 4px; color: #000;">
+                        <span>NET TOTAL:</span>
+                        <span>${app.formatCurrency(txn.amount)}</span>
+                    </div>
+                    ${(txn.paid && txn.paid > 0) ? `
+                    <div style="display: flex; justify-content: space-between; padding: 2px 0; color: #000;">
+                        <span style="font-weight: 500; color: #000;">Paid Amount:</span>
+                        <span style="font-weight: 700; color: #000;">${app.formatCurrency(txn.paid)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 2px 0; color: #000;">
+                        <span style="font-weight: 500; color: #000;">Remaining Due:</span>
+                        <span style="font-weight: 700; color: #000;">${app.formatCurrency(Math.max(0, txn.amount - txn.paid))}</span>
+                    </div>
+                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0; margin-top: 4px; border-top: 1px solid #000;">
+                        <span style="font-weight: 600; color: #000;">Supplier Balance After:</span>
+                        <span style="font-weight: 700; color: #000;">${app.formatCurrency(txn.balanceAfter)}</span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="text-align: center; margin-top: 16px; border-top: 1.5px solid #000; padding-top: 8px; font-size: 12px; color: #000;">
+                    <p style="margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #000;">Thank you for your business!</p>
+                </div>
+            </div>
+        `;
+
+        app.hideLoading();
+        const cleanCompany = (company.name || 'Company').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filename = `${invoiceDisplay}_${cleanCompany}.pdf`;
+        await app.savePDF({
+            html: html,
+            defaultFilename: filename,
+            title: `Save Voucher ${invoiceDisplay} as PDF`
+        });
+    } catch (err) {
+        console.error(err);
+        app.hideLoading();
+        app.showAlert("Error generating voucher PDF.");
     }
   },
 

@@ -775,6 +775,50 @@ const app = {
     }
   },
 
+  async savePDF({ html, defaultFilename, title, pageSize = 'A5' }) {
+    if (!window.api || !window.api.savePDF) {
+      this.showAlert("PDF export not supported in this environment.");
+      return;
+    }
+    this.showLoading();
+    try {
+      const res = await window.api.savePDF({ html, defaultFilename, title, pageSize });
+      this.hideLoading();
+      if (res && res.success) {
+        this.showAlert({
+          title: 'PDF Saved Successfully',
+          message: `Bill saved to:<br><b class="text-slate-800 text-xs break-all">${res.path}</b>`,
+          type: 'success'
+        });
+      } else if (res && res.error) {
+        this.showAlert({
+          title: 'Save Failed',
+          message: `Could not save PDF: ${res.error}`,
+          confirmColor: 'red'
+        });
+      }
+    } catch (err) {
+      this.hideLoading();
+      console.error('Save PDF error:', err);
+      this.showAlert("An error occurred while saving the PDF.");
+    }
+  },
+
+  async saveCurrentPreviewPDF() {
+    const previewPaper = document.getElementById('preview-paper');
+    const titleEl = document.getElementById('preview-title');
+    const docTitle = titleEl ? titleEl.textContent.trim() : 'Document';
+    const cleanTitle = docTitle.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `${cleanTitle}_${Date.now()}.pdf`;
+
+    const html = previewPaper ? previewPaper.innerHTML : '';
+    await this.savePDF({
+      html: html,
+      defaultFilename: filename,
+      title: `Save ${docTitle} as PDF`
+    });
+  },
+
   // Calculator State & Logic
   calcState: {
     current: '0',

@@ -28,6 +28,10 @@ window.ItemSales = {
             <i data-lucide="eye" class="w-4 h-4 text-slate-400" id="item-stats-toggle-icon"></i>
             <span id="item-stats-toggle-text">Show Stats</span>
           </button>
+          <button onclick="ItemSales.exportReportPDF()" class="h-10 px-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-sm rounded-xl flex items-center gap-2 shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer">
+            <i data-lucide="file-down" class="w-4 h-4 text-slate-600"></i>
+            <span>Save as PDF</span>
+          </button>
           <button onclick="ItemSales.printReport()" class="h-10 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl flex items-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer">
             <i data-lucide="printer" class="w-4 h-4 text-amber-400"></i>
             <span>Print A5 Report</span>
@@ -872,6 +876,125 @@ window.ItemSales = {
       console.error(err);
       app.hideLoading();
       app.showAlert("Failed to prepare Item Sales report.");
+    }
+  },
+
+  async exportReportPDF() {
+    const list = this.currentFilteredGrouped || [];
+    if (list.length === 0) {
+      app.showAlert("No items to export for the selected period.");
+      return;
+    }
+
+    try {
+      app.showLoading();
+      const settings = await window.api.getSettings();
+      let periodLabel = 'All Time';
+      let periodFileSlug = 'all_time';
+      if (this.currentPeriodType === 'day') {
+        const d = document.getElementById('item-stats-date-picker')?.value;
+        periodLabel = `Daily: ${d || 'Today'}`;
+        periodFileSlug = d ? d.replace(/-/g, '') : 'today';
+      } else if (this.currentPeriodType === 'month') {
+        const m = document.getElementById('item-stats-month-select')?.value;
+        const y = document.getElementById('item-stats-month-year-select')?.value;
+        const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        periodLabel = `Monthly: ${monthNames[parseInt(m)]} ${y}`;
+        periodFileSlug = `${y}_${m}`;
+      } else if (this.currentPeriodType === 'year') {
+        const y = document.getElementById('item-stats-year-picker')?.value;
+        periodLabel = `Annual: ${y}`;
+        periodFileSlug = `${y}`;
+      }
+
+      let totalQty = 0, totalRev = 0, totalCost = 0, totalProfit = 0;
+      list.forEach(i => {
+        totalQty += i.totalQty;
+        totalRev += i.totalRevenue;
+        totalCost += i.totalCost;
+        totalProfit += i.totalProfit;
+      });
+
+      const rowsHtml = list.map((item, idx) => `
+        <tr>
+          <td style="border: 1px solid #000; padding: 4px 5px; font-size: 11px; text-align: center; color: #000; font-weight: 700;">${idx + 1}</td>
+          <td style="border: 1px solid #000; padding: 4px 6px; font-size: 11px; color: #000; font-weight: 600; text-transform: uppercase;">${item.description}</td>
+          <td style="border: 1px solid #000; padding: 4px 5px; font-size: 11px; text-align: center; color: #000; font-weight: 700;">${item.totalQty}</td>
+          <td style="border: 1px solid #000; padding: 4px 6px; font-size: 11px; text-align: right; color: #000;">${app.formatAmount(item.totalRevenue / (item.totalQty || 1))}</td>
+          <td style="border: 1px solid #000; padding: 4px 6px; font-size: 11px; text-align: right; color: #000; font-weight: 700;">${app.formatAmount(item.totalRevenue)}</td>
+          <td style="border: 1px solid #000; padding: 4px 6px; font-size: 11px; text-align: right; color: #000; font-weight: 700;">${app.formatAmount(item.totalProfit)}</td>
+        </tr>
+      `).join('');
+
+      const html = `
+        <div class="receipt-80mm" style="width: 100%; max-width: 780px; margin: 0 auto; padding: 16px 20px; background: #fff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #000; box-sizing: border-box; font-size: 12px; line-height: 1.4; border: 1.5px solid #000; border-radius: 8px; -webkit-font-smoothing: antialiased;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 10px;">
+            <h1 style="font-size: 24px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.2; color: #000;">${settings.company_name || 'Akhtar & Sons'}</h1>
+            <p style="font-size: 12px; margin: 2px 0 1px; font-weight: 500; color: #000;">${settings.address || 'B-99, Lalarukh Basti, Wah Cantt'}</p>
+            <p style="font-size: 12px; margin: 1px 0 0; font-weight: 600; color: #000;">Contact: ${settings.phone || '0310-5123788'}</p>
+            <div style="margin-top: 5px;">
+              <span style="display: inline-block; border: 1.5px solid #000; padding: 2px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px; color: #000; background: #fff;">ITEM SALES REPORT</span>
+            </div>
+          </div>
+          
+          <!-- Metadata Card -->
+          <div style="display: flex; justify-content: space-between; gap: 15px; font-size: 11.5px; line-height: 1.5; color: #000; margin-bottom: 10px; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #000;">
+            <div><span style="font-weight: 700;">Period:</span> <span style="font-weight: 600;">${periodLabel}</span></div>
+            <div><span style="font-weight: 700;">Total Items:</span> <span style="font-weight: 600;">${list.length}</span></div>
+            <div><span style="font-weight: 700;">Generated:</span> <span style="font-weight: 500;">${app.formatDateTime(new Date().toISOString())}</span></div>
+          </div>
+
+          <!-- Items Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1.5px solid #000; color: #000; background: #fff;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid #000; background: #fff;">
+                <th style="border: 1px solid #000; padding: 5px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: center; width: 6%;">#</th>
+                <th style="border: 1px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: left; width: 44%;">Item Description</th>
+                <th style="border: 1px solid #000; padding: 5px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: center; width: 12%;">Qty</th>
+                <th style="border: 1px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: right; width: 12%;">Avg Rate</th>
+                <th style="border: 1px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: right; width: 13%;">Total Sale</th>
+                <th style="border: 1px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: right; width: 13%;">Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <!-- Summary Box -->
+          <div style="margin-left: auto; width: 300px; margin-bottom: 10px; font-size: 12px; line-height: 1.6; color: #000;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="font-weight: 500;">Total Units Sold:</span>
+              <span style="font-weight: 700;">${totalQty.toLocaleString()}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="font-weight: 500;">Total Revenue:</span>
+              <span style="font-weight: 700;">${app.formatCurrency(totalRev)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1.5px solid #000; padding-top: 3px; font-size: 13px; font-weight: 800;">
+              <span>TOTAL GROSS PROFIT:</span>
+              <span>${app.formatCurrency(totalProfit)}</span>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 10px; border-top: 1.5px solid #000; padding-top: 6px; font-size: 11px; color: #000;">
+            <p style="margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">${settings.company_name || 'Akhtar & Sons'} &bull; Item Sales Performance</p>
+          </div>
+        </div>
+      `;
+
+      app.hideLoading();
+      await app.savePDF({
+        html: html,
+        defaultFilename: `Item_Sales_${periodFileSlug}.pdf`,
+        title: 'Save Item Sales Report as PDF'
+      });
+    } catch (err) {
+      console.error(err);
+      app.hideLoading();
+      app.showAlert("Failed to export Item Sales PDF.");
     }
   }
 };
