@@ -204,86 +204,86 @@ window.SalesForm = {
     const daysList = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 
     container.innerHTML = `
-      <div class="flex flex-col h-full bg-slate-200/90 overflow-y-auto custom-scrollbar p-3 md:p-5 select-none" id="sales-form-root">
+      <div class="flex flex-col h-full bg-slate-200/90 overflow-y-auto custom-scrollbar p-2 sm:p-3 select-none" id="sales-form-root">
         
         <!-- Centered Authentic Paper Bill Worksheet -->
-        <div class="max-w-[980px] w-full mx-auto bg-white rounded-xl shadow-2xl border-2 border-slate-950 flex flex-col p-4 md:p-6 gap-3.5 text-slate-950 font-sans">
+        <div class="max-w-[1020px] w-full mx-auto bg-white rounded-lg shadow-lg border border-slate-950 flex flex-col p-2.5 sm:p-3.5 gap-2 text-slate-950 font-sans">
           
           <!-- 1. Top Header Box (Logo + Company Info + Sales Invoice Title) -->
-          <div class="border-[1.5px] border-slate-950 p-3 flex items-center justify-between bg-white">
+          <div class="border border-slate-950 px-3 py-1.5 flex items-center justify-between bg-white rounded-md">
             <!-- Logo Frame -->
-            <div class="w-20 h-14 border border-slate-950 flex items-center justify-center font-black text-xs uppercase shrink-0 bg-slate-50">
-              ${(this.settings && this.settings.logo_path) ? `<img src="file://${this.settings.logo_path}" class="max-h-12 max-w-16 object-contain">` : '<span class="text-slate-700 tracking-wider">LOGO</span>'}
+            <div class="w-16 h-11 border border-slate-950 flex items-center justify-center font-black text-[10px] uppercase shrink-0 bg-slate-50">
+              ${(this.settings && this.settings.logo_path) ? `<img src="file://${this.settings.logo_path}" class="max-h-9 max-w-14 object-contain">` : '<span class="text-slate-700 tracking-wider">LOGO</span>'}
             </div>
             
             <!-- Company Title & Address Center -->
             <div class="flex-1 text-center px-2">
-              <h1 class="font-sans text-2xl md:text-3xl font-black uppercase tracking-tight leading-none text-slate-950">
+              <h1 class="font-sans text-xl md:text-2xl font-black uppercase tracking-tight leading-tight text-slate-950">
                 ${this.settings.company_name || 'Akhtar & Sons'}
               </h1>
-              <div class="text-[11px] font-semibold text-slate-800 mt-1">
+              <div class="text-[10px] font-semibold text-slate-700 leading-tight">
                 ${this.settings.address || 'B-99, Lalarukh Basti, Wah Cantt'} &nbsp;•&nbsp; ${this.settings.phone || '0310-5123788'}
               </div>
-              <div class="border-t border-slate-950 my-1 w-4/5 mx-auto"></div>
-              <div class="font-sans text-xs md:text-sm font-black uppercase tracking-wider text-slate-900">
+              <div class="border-t border-slate-950 my-0.5 w-3/4 mx-auto"></div>
+              <div class="font-sans text-[11px] font-black uppercase tracking-wider text-slate-900">
                 ${this.editingSaleId ? `<span class="text-blue-600">EDIT INVOICE</span> #${this.saleNumber}` : 'SALES INVOICE'}
               </div>
             </div>
 
             <!-- Quick Action / Invoice Tag on Right -->
-            <div class="flex flex-col items-end gap-1.5 shrink-0">
-              <div class="flex items-center gap-1.5 bg-slate-950 text-white px-2.5 py-1 rounded border border-slate-950 shadow-sm">
-                <span class="text-[10px] uppercase font-bold text-amber-400">INV #</span>
-                <input type="text" id="sf-sale-number" value="${this.saleNumber}" class="w-20 bg-transparent text-white font-black text-xs uppercase text-center outline-none focus:bg-slate-800 rounded">
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              <div class="flex items-center gap-1.5 bg-slate-950 text-white px-2 py-0.5 rounded border border-slate-950 shadow-2xs">
+                <span class="text-[9.5px] uppercase font-bold text-amber-400">INV #</span>
+                <input type="text" id="sf-sale-number" value="${this.saleNumber}" class="w-16 bg-transparent text-white font-black text-xs uppercase text-center outline-none focus:bg-slate-800 rounded">
               </div>
-              <div id="sf-live-clock" class="text-[10px] font-bold text-slate-600">
+              <div id="sf-live-clock" class="text-[9.5px] font-bold text-slate-600">
                 Loading...
               </div>
             </div>
           </div>
 
           <!-- 2. 2-Column Metadata Grid (Clean Dashed Inputs, No Booking Days) -->
-          <div class="border border-slate-950 p-2.5 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-semibold bg-white">
+          <div class="border border-slate-950 px-2.5 py-1.5 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-xs font-semibold bg-white rounded-md">
             
             <!-- Left Metadata Column -->
-            <div class="space-y-1.5 pr-0 md:pr-3 md:border-r border-slate-300">
+            <div class="space-y-1 pr-0 md:pr-2 md:border-r border-slate-300">
               <div class="flex items-center">
-                <span class="w-24 font-bold text-slate-700">Invoice #:</span>
+                <span class="w-20 font-bold text-slate-700 text-[11px]">Invoice #:</span>
                 <span class="font-black text-slate-950 text-xs tracking-tight">${this.saleNumber}</span>
               </div>
 
               <div class="flex items-center">
-                <span class="w-24 font-bold text-slate-700">Booked By:</span>
+                <span class="w-20 font-bold text-slate-700 text-[11px]">Booked By:</span>
                 <div class="flex-1 flex items-center gap-1">
-                  <select id="sf-salesman-select" onchange="SalesForm.onSalesmanChange(this.value)" class="flex-1 bg-amber-50/50 border-b border-dashed border-slate-400 font-black text-slate-900 text-xs py-0.5 outline-none focus:border-slate-950 cursor-pointer">
+                  <select id="sf-salesman-select" onchange="SalesForm.onSalesmanChange(this.value)" class="flex-1 bg-amber-50/50 border-b border-dashed border-slate-400 font-black text-slate-900 text-[11px] py-0 outline-none focus:border-slate-950 cursor-pointer">
                     <option value="">-- Select Salesman --</option>
                     ${(this.sellers || []).map(s => `<option value="${s.name}" ${this.sellerName === s.name ? 'selected' : ''}>${s.name} ${s.phone ? '(' + s.phone + ')' : ''}</option>`).join('')}
                   </select>
-                  <span id="sf-salesman-contact-badge" class="text-[10px] text-slate-500 font-bold">${this.salesmanContact || ''}</span>
+                  <span id="sf-salesman-contact-badge" class="text-[9.5px] text-slate-500 font-bold">${this.salesmanContact || ''}</span>
                 </div>
               </div>
 
               <div class="flex items-center">
-                <span class="w-24 font-bold text-slate-700">Delivered By:</span>
-                <input type="text" id="sf-delivered-by" value="SELF" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-xs py-0.5 outline-none focus:border-slate-950">
+                <span class="w-20 font-bold text-slate-700 text-[11px]">Delivered By:</span>
+                <input type="text" id="sf-delivered-by" value="SELF" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-[11px] py-0 outline-none focus:border-slate-950">
               </div>
 
               <div class="flex items-center">
-                <span class="w-24 font-bold text-slate-700">Remarks:</span>
-                <input type="text" id="sf-payment-remarks" value="${this.remarks || ('Paid via ' + (this.paymentMethod || 'Cash'))}" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-xs py-0.5 outline-none focus:border-slate-950">
+                <span class="w-20 font-bold text-slate-700 text-[11px]">Remarks:</span>
+                <input type="text" id="sf-payment-remarks" value="${this.remarks || ('Paid via ' + (this.paymentMethod || 'Cash'))}" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-[11px] py-0 outline-none focus:border-slate-950">
               </div>
             </div>
 
             <!-- Right Metadata Column -->
-            <div class="space-y-1.5 pl-0 md:pl-1">
+            <div class="space-y-1 pl-0 md:pl-1">
               <div class="flex items-center relative" id="sf-shop-container">
-                <span class="w-24 font-bold text-slate-700 flex items-center justify-between pr-1">
+                <span class="w-20 font-bold text-slate-700 text-[11px] flex items-center justify-between pr-1">
                   <span>Sale To: <span class="text-rose-600">*</span></span>
                 </span>
                 <div class="flex-1 relative flex items-center">
                   <input type="text" 
                          id="sf-shop-name" 
-                         autocomplete="off"
+                         autocomplete="off" 
                          onfocus="SalesForm.handleShopFocus()" 
                          onclick="SalesForm.handleShopFocus()"
                          oninput="SalesForm.handleShopInput(this.value)" 
@@ -291,7 +291,7 @@ window.SalesForm = {
                          value="${this.shopName || ''}" 
                          placeholder="Search / Type Shop Name (Press F1)..." 
                          ${this.shopName ? 'readonly' : ''}
-                         class="w-full ${this.shopName ? 'bg-amber-50/50 font-black text-slate-950' : 'bg-transparent font-bold text-slate-800'} border-b border-dashed border-slate-400 text-xs py-0.5 pr-6 outline-none focus:border-slate-950">
+                         class="w-full ${this.shopName ? 'bg-amber-50/50 font-black text-slate-950' : 'bg-transparent font-bold text-slate-800'} border-b border-dashed border-slate-400 text-[11px] py-0 pr-5 outline-none focus:border-slate-950">
                   
                   <button type="button" 
                           id="sf-shop-clear-btn" 
@@ -302,30 +302,30 @@ window.SalesForm = {
                   </button>
                 </div>
                 <!-- Dropdown List -->
-                <div id="sf-shops-dropdown" class="absolute top-full left-24 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-2xl overflow-hidden hidden max-h-[240px] overflow-y-auto custom-scrollbar z-50 divide-y divide-slate-100"></div>
+                <div id="sf-shops-dropdown" class="absolute top-full left-20 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-2xl overflow-hidden hidden max-h-[220px] overflow-y-auto custom-scrollbar z-50 divide-y divide-slate-100"></div>
               </div>
 
               <div class="flex items-center">
-                <span class="w-24 font-bold text-slate-700">Address:</span>
+                <span class="w-20 font-bold text-slate-700 text-[11px]">Address:</span>
                 <input type="text" 
                        id="sf-shop-address" 
                        value="${this.shopAddress || ''}" 
                        placeholder="Shop Address (e.g. FAISAL IQBAL TOWN)" 
-                       class="flex-1 bg-transparent border-b border-dashed border-slate-400 text-slate-800 font-semibold text-xs py-0.5 outline-none focus:border-slate-950">
+                       class="flex-1 bg-transparent border-b border-dashed border-slate-400 text-slate-800 font-semibold text-[11px] py-0 outline-none focus:border-slate-950">
               </div>
 
               <div class="flex items-center">
-                <span class="w-24 font-bold text-slate-700">Contact Info:</span>
+                <span class="w-20 font-bold text-slate-700 text-[11px]">Contact Info:</span>
                 <input type="text" 
                        id="sf-shop-phone" 
                        value="${this.shopPhone || ''}" 
                        placeholder="Phone Number (e.g. 0312-3456789)" 
-                       class="flex-1 bg-transparent border-b border-dashed border-slate-400 text-slate-800 font-semibold text-xs py-0.5 outline-none focus:border-slate-950">
+                       class="flex-1 bg-transparent border-b border-dashed border-slate-400 text-slate-800 font-semibold text-[11px] py-0 outline-none focus:border-slate-950">
               </div>
 
               <div class="flex items-center">
-                <span class="w-24 font-bold text-slate-700">CNIC - NTN #:</span>
-                <input type="text" id="sf-cnic-ntn" value="${this.shopNtn || ''}" placeholder="CNIC / NTN #" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-xs py-0.5 outline-none focus:border-slate-950 placeholder:font-normal placeholder:text-slate-400">
+                <span class="w-20 font-bold text-slate-700 text-[11px]">CNIC - NTN #:</span>
+                <input type="text" id="sf-cnic-ntn" value="${this.shopNtn || ''}" placeholder="CNIC / NTN #" class="flex-1 bg-transparent border-b border-dashed border-slate-400 font-bold text-slate-800 text-[11px] py-0 outline-none focus:border-slate-950 placeholder:font-normal placeholder:text-slate-400">
               </div>
             </div>
 
@@ -333,52 +333,52 @@ window.SalesForm = {
 
           <!-- 3. Fast Item Search Bar Directly on the Bill -->
           <div class="relative z-20" id="sf-search-container">
-            <div class="relative flex items-center bg-amber-50/70 border-2 border-amber-400 focus-within:border-slate-950 focus-within:bg-white rounded-lg transition-all shadow-sm">
-              <span class="pl-3 pr-2 text-amber-600 font-bold text-sm">🔍</span>
+            <div class="relative flex items-center bg-amber-50/70 border border-amber-400 focus-within:border-slate-950 focus-within:bg-white rounded-md transition-all shadow-2xs">
+              <span class="pl-2.5 pr-1.5 text-amber-600 font-bold text-xs">🔍</span>
               <input type="text" 
                      id="sf-fast-item-search" 
                      autocomplete="off"
                      oninput="SalesForm.handleSearchInput(this.value)"
                      onkeydown="SalesForm.handleSearchKeyDown(event)"
                      placeholder="Type product name or code to add item to bill (Press F2 or type anywhere)..." 
-                     class="w-full py-2 bg-transparent text-slate-950 font-black text-xs outline-none placeholder:text-slate-400">
+                     class="w-full py-1.5 bg-transparent text-slate-950 font-black text-xs outline-none placeholder:text-slate-400">
               
               <button type="button" 
                       id="sf-search-clear-btn" 
                       onclick="SalesForm.clearSearchInput()" 
                       title="Clear search (Del / Esc)"
-                      class="px-2 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded text-xs font-bold cursor-pointer hidden mr-1 transition-colors">
+                      class="px-2 py-0.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded text-xs font-bold cursor-pointer hidden mr-1 transition-colors">
                 ✕
               </button>
 
-              <span class="text-[10px] font-black uppercase text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded mr-2 shrink-0">
+              <span class="text-[9.5px] font-black uppercase text-amber-800 bg-amber-200/80 px-1.5 py-0.5 rounded mr-1.5 shrink-0">
                 Fast Add (F2)
               </span>
             </div>
-            <div id="sf-search-dropdown" class="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-2xl overflow-hidden hidden max-h-[300px] overflow-y-auto custom-scrollbar z-50 divide-y divide-slate-100"></div>
+            <div id="sf-search-dropdown" class="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-2xl overflow-hidden hidden max-h-[260px] overflow-y-auto custom-scrollbar z-50 divide-y divide-slate-100"></div>
           </div>
 
           <!-- 4. Products Table (Structured Identically to the Bill Table with GST 18%) -->
-          <div class="border border-slate-950 overflow-hidden flex flex-col bg-white">
-            <table class="w-full border-collapse text-[11px]" id="sf-cart-table">
-              <thead class="bg-slate-100 border-b border-slate-950 text-slate-950 uppercase font-black tracking-wider select-none text-[10.5px]">
+          <div class="border border-slate-950 overflow-hidden flex flex-col bg-white rounded-md">
+            <table class="w-full border-collapse text-[10.5px]" id="sf-cart-table">
+              <thead class="bg-slate-100 border-b border-slate-950 text-slate-950 uppercase font-black tracking-wider select-none text-[10px]">
                 <tr>
-                  <th class="py-1.5 px-2 w-10 text-center border-r border-slate-950">Sr. #</th>
-                  <th class="py-1.5 px-3 border-r border-slate-950 text-left">Product Description</th>
-                  <th class="py-1.5 px-2 w-20 text-center border-r border-slate-950">Qty</th>
-                  <th class="py-1.5 px-2 w-24 text-right border-r border-slate-950">Rate (Rs.)</th>
-                  <th class="py-1.5 px-2 w-24 text-right border-r border-slate-950">Gross Value</th>
-                  <th class="py-1 px-1.5 w-32 text-right border-r border-slate-950 select-none">
-                    <div class="inline-flex items-center justify-end gap-1">
+                  <th class="py-1 px-1.5 w-9 text-center border-r border-slate-950">Sr. #</th>
+                  <th class="py-1 px-2.5 border-r border-slate-950 text-left">Product Description</th>
+                  <th class="py-1 px-1.5 w-16 text-center border-r border-slate-950">Qty</th>
+                  <th class="py-1 px-2 w-20 text-right border-r border-slate-950">Rate (Rs.)</th>
+                  <th class="py-1 px-2 w-20 text-right border-r border-slate-950">Gross Value</th>
+                  <th class="py-0.5 px-1 w-28 text-right border-r border-slate-950 select-none">
+                    <div class="inline-flex items-center justify-end gap-0.5">
                       <label class="inline-flex items-center gap-1 cursor-pointer" title="Include/Exclude GST">
                         <input type="checkbox" 
                                id="sf-gst-toggle" 
                                ${this.isTaxEnabled ? 'checked' : ''} 
                                onchange="SalesForm.toggleTaxEnable(this.checked)" 
-                               class="w-3.5 h-3.5 rounded text-amber-500 cursor-pointer accent-amber-500">
-                        <span class="text-[10px] font-black uppercase text-slate-900 tracking-tight">GST</span>
+                               class="w-3 h-3 rounded text-amber-500 cursor-pointer accent-amber-500">
+                        <span class="text-[9.5px] font-black uppercase text-slate-900 tracking-tight">GST</span>
                       </label>
-                      <span class="text-[10px] text-slate-500 font-bold">(</span>
+                      <span class="text-[9.5px] text-slate-500 font-bold">(</span>
                       <input type="number" 
                              id="sf-gst-percent" 
                              value="${this.taxPercent}" 
@@ -387,70 +387,70 @@ window.SalesForm = {
                              step="any" 
                              oninput="SalesForm.onTaxPercentInput(this.value)" 
                              style="-moz-appearance: textfield; -webkit-appearance: none; margin: 0;"
-                             class="w-10 text-center bg-white border border-slate-300 rounded px-1 py-0 text-[10.5px] font-black text-slate-900 outline-none focus:border-amber-500 tabular-nums">
-                      <span class="text-[10px] text-slate-500 font-bold">%)</span>
+                             class="w-8 text-center bg-white border border-slate-300 rounded px-0.5 py-0 text-[10px] font-black text-slate-900 outline-none focus:border-amber-500 tabular-nums">
+                      <span class="text-[9.5px] text-slate-500 font-bold">%)</span>
                     </div>
                   </th>
-                  <th class="py-1.5 px-3 w-28 text-right border-r border-slate-950">Net Value</th>
-                  <th class="py-1.5 px-1.5 w-10 text-center">✕</th>
+                  <th class="py-1 px-2.5 w-24 text-right border-r border-slate-950">Net Value</th>
+                  <th class="py-1 px-1 w-8 text-center">✕</th>
                 </tr>
               </thead>
               <tbody id="sf-cart-tbody" class="divide-y divide-slate-200">
                 <!-- Injected via renderCart() -->
               </tbody>
-              <tfoot id="sf-cart-tfoot" class="bg-slate-50 border-t-2 border-slate-950 font-black text-slate-950">
+              <tfoot id="sf-cart-tfoot" class="bg-slate-50 border-t-2 border-slate-950 font-black text-slate-950 text-[10.5px]">
                 <!-- Summary Totals Row -->
               </tfoot>
             </table>
 
             <!-- Empty state when no items in cart -->
-            <div id="sf-cart-empty-state" class="py-8 text-center flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
+            <div id="sf-cart-empty-state" class="py-4 text-center flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
               <p class="font-bold text-slate-700 text-xs">No items on this bill yet</p>
-              <p class="text-[11px] text-slate-400 mt-0.5">Type in the yellow search box above or press <kbd class="px-1 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px]">F2</kbd> to add items.</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Type in the yellow search box above or press <kbd class="px-1 py-0.2 bg-white border border-slate-300 rounded font-mono text-[9px]">F2</kbd> to add items.</p>
             </div>
           </div>
 
-          <!-- 5. Lower Summary Breakdown Strip (Ultra Compact Bill Footer Matching Given Bill) -->
-          <div class="border border-slate-950 px-3 py-1.5 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold bg-white">
+          <!-- 5. Lower Summary Breakdown Strip (Single Line, Never Wraps on Laptops) -->
+          <div class="border border-slate-950 px-2.5 py-1 flex items-center justify-between gap-1.5 text-xs font-semibold bg-white rounded-md whitespace-nowrap overflow-x-auto">
             
             <!-- Left Info & Balances -->
-            <div class="flex items-center gap-3 text-xs">
-              <div class="flex items-center gap-1.5">
-                <label class="inline-flex items-center gap-1.5 cursor-pointer select-none" title="Include / Exclude Previous Balance in Bill">
+            <div class="flex items-center gap-2 text-[11px] shrink-0">
+              <div class="flex items-center gap-1">
+                <label class="inline-flex items-center gap-1 cursor-pointer select-none" title="Include / Exclude Previous Balance in Bill">
                   <input type="checkbox" 
                          id="sf-prev-bal-toggle" 
                          ${this.includePrevBalance ? 'checked' : ''} 
                          onchange="SalesForm.togglePrevBalanceEnable(this.checked)" 
-                         class="w-3.5 h-3.5 rounded text-amber-500 cursor-pointer accent-amber-500">
-                  <span class="font-bold text-slate-600">Prev. Bal:</span>
+                         class="w-3 h-3 rounded text-amber-500 cursor-pointer accent-amber-500">
+                  <span class="font-bold text-slate-600 text-[11px]">Prev. Bal:</span>
                 </label>
-                <span class="font-black text-slate-900" id="sf-prev-balance-text">${this.shopPreviousBalance ? app.formatCurrency(this.shopPreviousBalance) : '0'}</span>
+                <span class="font-black text-slate-900 text-[11px]" id="sf-prev-balance-text">${this.shopPreviousBalance ? app.formatCurrency(this.shopPreviousBalance) : '0'}</span>
               </div>
               <span class="text-slate-300">|</span>
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-slate-600">Net Balance:</span>
-                <span class="font-black text-slate-950" id="sf-net-balance-text">Rs. 0</span>
+              <div class="flex items-center gap-1">
+                <span class="font-bold text-slate-600 text-[11px]">Net Balance:</span>
+                <span class="font-black text-slate-950 text-[11px]" id="sf-net-balance-text">Rs. 0</span>
               </div>
               <span class="text-slate-300">|</span>
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-slate-600">Sum Net:</span>
-                <span class="font-black text-slate-900" id="sf-subtotal">Rs. 0</span>
+              <div class="flex items-center gap-1">
+                <span class="font-bold text-slate-600 text-[11px]">Sum Net:</span>
+                <span class="font-black text-slate-900 text-[11px]" id="sf-subtotal">Rs. 0</span>
               </div>
             </div>
 
             <!-- Right Financial Summary with WHT, Received Amount & Pending Due -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 shrink-0">
               <!-- WHT Toggle & Custom % Field -->
-              <div class="inline-flex items-center gap-1 select-none">
+              <div class="inline-flex items-center gap-0.5 select-none bg-slate-50 border border-slate-200 rounded px-1.5 py-0">
                 <label class="inline-flex items-center gap-1 cursor-pointer" title="Include/Exclude Withholding Tax (WHT)">
                   <input type="checkbox" 
                          id="sf-wht-toggle" 
                          ${this.isWhtEnabled ? 'checked' : ''} 
                          onchange="SalesForm.toggleWhtEnable(this.checked)" 
-                         class="w-3.5 h-3.5 rounded text-amber-500 cursor-pointer accent-amber-500">
-                  <span class="text-[10px] font-black uppercase text-slate-900 tracking-tight">WHT</span>
+                         class="w-3 h-3 rounded text-amber-500 cursor-pointer accent-amber-500">
+                  <span class="text-[9.5px] font-black uppercase text-slate-900 tracking-tight">WHT</span>
                 </label>
-                <span class="text-[10px] text-slate-500 font-bold">(</span>
+                <span class="text-[9.5px] text-slate-500 font-bold">(</span>
                 <input type="number" 
                        id="sf-wht-percent" 
                        value="${this.whtPercent !== undefined && this.whtPercent !== null ? this.whtPercent : 0.5}" 
@@ -459,23 +459,23 @@ window.SalesForm = {
                        step="any" 
                        oninput="SalesForm.onWhtPercentInput(this.value)" 
                        style="-moz-appearance: textfield; -webkit-appearance: none; margin: 0;"
-                       class="w-10 text-center bg-white border border-slate-300 rounded px-1 py-0 text-[10.5px] font-black text-slate-900 outline-none focus:border-amber-500 tabular-nums">
-                <span class="text-[10px] text-slate-500 font-bold">%)</span>
-                <span class="text-[11px] font-black text-slate-800 tabular-nums ml-0.5" id="sf-wht-amount-text">Rs. 0</span>
+                       class="w-9 text-center bg-white border border-slate-300 rounded px-0.5 py-0 text-[10px] font-black text-slate-900 outline-none focus:border-amber-500 tabular-nums">
+                <span class="text-[9.5px] text-slate-500 font-bold">%)</span>
+                <span class="text-[10.5px] font-black text-slate-800 tabular-nums ml-0.5" id="sf-wht-amount-text">Rs. 0</span>
               </div>
 
-              <div class="h-4 w-[1px] bg-slate-300"></div>
+              <span class="text-slate-300">|</span>
 
-              <div class="flex items-center gap-1.5">
-                <span class="font-black text-xs text-slate-950 uppercase tracking-tight">Net Inv. Amount:</span>
-                <span class="font-black text-base text-emerald-700 tabular-nums" id="sf-grand-total">Rs. 0</span>
+              <div class="flex items-center gap-1">
+                <span class="font-black text-[11px] text-slate-950 uppercase tracking-tight">Net Inv. Amount:</span>
+                <span class="font-black text-sm text-emerald-700 tabular-nums" id="sf-grand-total">Rs. 0</span>
               </div>
 
               <!-- Received Amount Input Field -->
-              <div class="flex items-center gap-1.5 bg-amber-50/90 border border-amber-300 rounded-lg px-2 py-0.5 shadow-2xs">
-                <label for="sf-received-amount" class="font-bold text-xs text-amber-950 uppercase tracking-tight whitespace-nowrap">Received:</label>
+              <div class="flex items-center gap-1 bg-amber-50/90 border border-amber-300 rounded-md px-1.5 py-0 shadow-2xs">
+                <label for="sf-received-amount" class="font-bold text-[10.5px] text-amber-950 uppercase tracking-tight whitespace-nowrap">Received:</label>
                 <div class="flex items-center">
-                  <span class="text-[11px] font-bold text-amber-700 mr-1 select-none">Rs.</span>
+                  <span class="text-[10px] font-bold text-amber-700 mr-0.5 select-none">Rs.</span>
                   <input type="number" 
                          id="sf-received-amount" 
                          min="0" 
@@ -483,71 +483,71 @@ window.SalesForm = {
                          placeholder="0" 
                          value="${this.receivedAmount !== null && this.receivedAmount !== undefined ? this.receivedAmount : ''}"
                          oninput="SalesForm.onReceivedAmountInput(this.value)" 
-                         class="w-20 text-right font-black text-xs text-slate-900 bg-white border border-amber-400 rounded px-1.5 py-0.5 outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 tabular-nums">
+                         class="w-16 text-right font-black text-[11px] text-slate-900 bg-white border border-amber-400 rounded px-1 py-0 outline-none focus:ring-1 focus:ring-amber-500 tabular-nums">
                 </div>
               </div>
 
               <!-- Pending / Due for this bill (Added to Shop Balance) -->
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-xs text-rose-700 uppercase tracking-tight">Pending:</span>
-                <span class="font-black text-xs text-rose-700 tabular-nums" id="sf-pending-amount">Rs. 0</span>
+              <div class="flex items-center gap-1">
+                <span class="font-bold text-[10.5px] text-rose-700 uppercase tracking-tight">Pending:</span>
+                <span class="font-black text-[11px] text-rose-700 tabular-nums" id="sf-pending-amount">Rs. 0</span>
               </div>
             </div>
 
           </div>
 
           <!-- 6. Bottom Action Toolbar -->
-          <div class="flex items-center justify-between pt-2 border-t border-slate-300 shrink-0">
-            <div class="flex items-center gap-2.5">
+          <div class="flex items-center justify-between pt-1 border-t border-slate-300 shrink-0">
+            <div class="flex items-center gap-2">
               <button type="button" 
                       onclick="SalesForm.resetForm()" 
-                      class="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all border border-slate-300">
+                      class="px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer transition-all border border-slate-300">
                 <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                 <span>Clear / Reset (Esc)</span>
               </button>
 
               <!-- Payment Method Toggle (Cash / Online) -->
-              <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-300 select-none">
-                <span class="text-[11px] font-bold text-slate-600 px-2 uppercase tracking-tight">Method:</span>
+              <div class="flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-300 select-none">
+                <span class="text-[10px] font-bold text-slate-600 px-1.5 uppercase tracking-tight">Method:</span>
                 <button type="button" 
                         id="sf-method-cash"
                         onclick="SalesForm.setPaymentMethod('Cash')" 
-                        class="px-3 py-1.5 rounded-md text-xs ${(!this.paymentMethod || this.paymentMethod === 'Cash') ? 'font-black bg-slate-900 text-white shadow-sm' : 'font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'} cursor-pointer">
+                        class="px-2.5 py-1 rounded text-xs ${(!this.paymentMethod || this.paymentMethod === 'Cash') ? 'font-black bg-slate-900 text-white shadow-xs' : 'font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'} cursor-pointer">
                   Cash
                 </button>
                 <button type="button" 
                         id="sf-method-online"
                         onclick="SalesForm.setPaymentMethod('Online')" 
-                        class="px-3 py-1.5 rounded-md text-xs ${this.paymentMethod === 'Online' ? 'font-black bg-slate-900 text-white shadow-sm' : 'font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'} cursor-pointer">
+                        class="px-2.5 py-1 rounded text-xs ${this.paymentMethod === 'Online' ? 'font-black bg-slate-900 text-white shadow-xs' : 'font-bold bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'} cursor-pointer">
                   Online
                 </button>
               </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
               ${this.editingSaleId ? `
-                <button type="button" onclick="app.navigate('proposals')" class="px-4 py-2.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs cursor-pointer">
+                <button type="button" onclick="app.navigate('proposals')" class="px-3.5 py-1.5 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs cursor-pointer">
                   Cancel
                 </button>
                 <button type="button" 
-                        id="sf-save-btn"
+                        id="sf-save-btn" 
                         onclick="SalesForm.completeSale(false)" 
-                        class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-xs flex items-center gap-1.5 shadow cursor-pointer">
-                  <i data-lucide="save" class="w-4 h-4 text-emerald-400"></i>
+                        class="px-4 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-white font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer">
+                  <i data-lucide="save" class="w-3.5 h-3.5 text-emerald-400"></i>
                   <span>SAVE</span>
                 </button>
                 <button type="button" 
-                        id="sf-complete-btn"
+                        id="sf-complete-btn" 
                         onclick="SalesForm.completeSale(true)" 
-                        class="px-6 py-2.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-white font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer">
-                  <i data-lucide="printer" class="w-4 h-4 text-amber-400"></i>
+                        class="px-5 py-2 rounded-md bg-slate-950 hover:bg-slate-800 text-white font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer">
+                  <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-400"></i>
                   <span>SAVE & PRINT (F9)</span>
                 </button>
               ` : `
                 <button type="button" 
-                        id="sf-complete-btn"
+                        id="sf-complete-btn" 
                         onclick="SalesForm.completeSale(true)" 
-                        class="px-6 py-2.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-white font-black text-sm flex items-center gap-2 shadow-lg cursor-pointer transition-all">
+                        class="px-5 py-2 rounded-md bg-slate-950 hover:bg-slate-800 text-white font-black text-xs flex items-center gap-2 shadow-md cursor-pointer transition-all">
                   <i data-lucide="printer" class="w-4 h-4 text-amber-400"></i>
                   <span>COMPLETE & PRINT (F9)</span>
                 </button>
