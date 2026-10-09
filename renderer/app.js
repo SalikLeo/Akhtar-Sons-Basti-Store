@@ -148,7 +148,7 @@ const app = {
     }
   },
 
-  navigate(page, args) {
+  async navigate(page, args) {
     // Support legacy stock_password configuration
     const stockPassword = window.storage.get('stock_password');
     const lockedTabs = window.storage.get('locked_tabs');
@@ -183,17 +183,35 @@ const app = {
     }
 
     // Route to corresponding module
-    switch(page) {
-      case 'dashboard': Dashboard.render(content); break;
-      case 'proposals': Proposals.render(content); break;
-      case 'item-sales': ItemSales.render(content, args); break;
-      case 'proposal-form': SalesForm.render(content, args); break;
-      case 'master-db': MasterDB.render(content); break;
-      case 'expenses': Expenses.render(content); break;
-      case 'companies': Companies.render(content); break;
-      case 'shops': Shops.render(content); break;
-      case 'reports': Reports.render(content); break;
-      case 'settings': Settings.render(content); break;
+    try {
+      switch(page) {
+        case 'dashboard': await Dashboard.render(content); break;
+        case 'proposals': await Proposals.render(content); break;
+        case 'item-sales': await ItemSales.render(content, args); break;
+        case 'proposal-form': await SalesForm.render(content, args); break;
+        case 'master-db': await MasterDB.render(content); break;
+        case 'expenses': await Expenses.render(content); break;
+        case 'companies': await Companies.render(content); break;
+        case 'shops': await Shops.render(content); break;
+        case 'reports': await Reports.render(content); break;
+        case 'settings': await Settings.render(content); break;
+      }
+    } catch (err) {
+      console.error(`Error rendering page ${page}:`, err);
+      content.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-[60vh] p-6">
+          <div class="bg-white p-8 rounded-3xl shadow-xl border border-rose-100 max-w-md w-full text-center space-y-4">
+            <div class="w-16 h-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto">
+              <i data-lucide="alert-circle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800">Unable to load section</h3>
+            <p class="text-xs text-slate-500">${err.message || 'An unexpected error occurred while loading this view.'}</p>
+            <button onclick="app.navigate('${page}')" class="px-6 py-2.5 bg-accent hover:bg-amber-500 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer">
+              Reload Section
+            </button>
+          </div>
+        </div>
+      `;
     }
     
     // Refresh Icons after rendering

@@ -111,7 +111,14 @@ const MasterDB = {
             </div>
           </div>
           <div class="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-            ${this.categories.map(c => `
+            ${this.categories.filter(c => c.id !== 'all').length === 0 ? `
+              <div class="p-4 text-center text-slate-400 text-xs">
+                <p class="mb-2.5">No categories exist.</p>
+                <button onclick="MasterDB.openManageCategoriesModal(true)" class="px-3 py-1.5 bg-accent hover:bg-amber-500 text-slate-900 font-bold rounded-lg text-xs shadow-sm transition-all cursor-pointer">
+                  + Add Category
+                </button>
+              </div>
+            ` : this.categories.map(c => `
                 <button onclick="MasterDB.switchTab('${c.id}')" id="tab-${c.id}" class="db-tab group w-full text-left px-4 py-1.5 rounded-lg transition-all flex justify-between items-center text-sm ${this.currentCategory === c.id ? 'bg-white shadow-sm border border-slate-200 text-slate-900 font-bold' : 'text-slate-600 hover:bg-slate-100 font-medium'}">
                   <span class="truncate pr-2">${c.label}</span>
                   <span id="count-${c.id}" class="text-[10px] font-black bg-slate-200/50 text-slate-500 px-1.5 py-0.5 rounded-md min-w-[20px] text-center group-hover:bg-slate-200 transition-colors">${c.count || 0}</span>
@@ -715,27 +722,54 @@ const MasterDB = {
 
   renderTableBody(list) {
     const isAll = this.currentCategory === 'all';
+    const actualCats = this.categories.filter(c => c.id !== 'all');
     const cat = this.categories.find(c => c.id === this.currentCategory) || { fields: ['item_name'] };
     
     // Render thead
     const thead = document.getElementById('db-thead');
-    thead.innerHTML = `
-      <tr>
-        <th class="px-2 py-2 font-black text-[13px] uppercase tracking-wider border-r border-slate-200 text-center w-10 text-slate-400 bg-slate-50">#</th>
-        ${cat.fields.map((f, i) => {
-          const colors = ['bg-amber-50 text-amber-700', 'bg-indigo-50 text-indigo-700', 'bg-purple-50 text-purple-700', 'bg-cyan-50 text-cyan-700', 'bg-rose-50 text-rose-700'];
-          return `<th class="px-4 py-2 font-black text-[13px] uppercase tracking-wider border-r border-slate-200 ${colors[i % colors.length]}">${this.capitalize(f)}</th>`;
-        }).join('')}
-        <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-center text-amber-900 border-r border-slate-200 bg-amber-50">Stock</th>
-        <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right text-red-600 border-r border-slate-200 bg-red-50" title="Cost Price">Cost (Rs.)</th>
-        <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right text-green-600 border-r border-slate-200 bg-green-50" title="Sale Price">Sale (Rs.)</th>
-        <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right text-blue-600 border-r border-slate-200 bg-blue-50" title="Profit per Item">Profit (Rs.)</th>
-        <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right bg-slate-100 text-slate-700">Actions</th>
-      </tr>
-    `;
+    if (thead) {
+      thead.innerHTML = `
+        <tr>
+          <th class="px-2 py-2 font-black text-[13px] uppercase tracking-wider border-r border-slate-200 text-center w-10 text-slate-400 bg-slate-50">#</th>
+          ${cat.fields.map((f, i) => {
+            const colors = ['bg-amber-50 text-amber-700', 'bg-indigo-50 text-indigo-700', 'bg-purple-50 text-purple-700', 'bg-cyan-50 text-cyan-700', 'bg-rose-50 text-rose-700'];
+            return `<th class="px-4 py-2 font-black text-[13px] uppercase tracking-wider border-r border-slate-200 ${colors[i % colors.length]}">${this.capitalize(f)}</th>`;
+          }).join('')}
+          <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-center text-amber-900 border-r border-slate-200 bg-amber-50">Stock</th>
+          <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right text-red-600 border-r border-slate-200 bg-red-50" title="Cost Price">Cost (Rs.)</th>
+          <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right text-green-600 border-r border-slate-200 bg-green-50" title="Sale Price">Sale (Rs.)</th>
+          <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right text-blue-600 border-r border-slate-200 bg-blue-50" title="Profit per Item">Profit (Rs.)</th>
+          <th class="px-3 py-2 font-black text-[11px] uppercase tracking-wider text-right bg-slate-100 text-slate-700">Actions</th>
+        </tr>
+      `;
+    }
 
     // Render tbody
     const tbody = document.getElementById('db-tbody');
+    if (!tbody) return;
+
+    if (actualCats.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="px-6 py-16 text-center text-slate-500 border-b border-slate-200">
+            <div class="max-w-sm mx-auto flex flex-col items-center">
+              <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
+                <i data-lucide="folder-plus" class="w-6 h-6"></i>
+              </div>
+              <h4 class="text-base font-bold text-slate-800 mb-1">No Categories Found</h4>
+              <p class="text-xs text-slate-500 mb-4">Create a category first to start adding and managing stock items.</p>
+              <button onclick="MasterDB.openManageCategoriesModal(true)" class="px-4 py-2 bg-accent hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add Category</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
     if (list.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-12 text-center text-slate-400 border-b border-slate-200 italic font-medium">No items found matching your search.</td></tr>`;
     } else {
@@ -771,13 +805,13 @@ const MasterDB = {
           <td class="px-3 py-1 tabular-nums text-xs text-right bg-blue-50/30 text-blue-700 border-r border-slate-200 font-medium">${app.formatNumber(profit)}</td>
           <td class="px-3 py-1 text-right font-medium">
             <div class="flex items-center justify-end gap-1.5 transition-opacity">
-              <button onclick="MasterDB.toggleFavorite('${itemCategory}', ${p.id})" class="group/fav p-1.5 ${p.is_favorite ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-400 hover:bg-amber-50'} rounded-lg transition-all flex items-center justify-center" title="Toggle Favorite">
+              <button onclick="MasterDB.toggleFavorite('${itemCategory}', ${p.id})" class="group/fav p-1.5 ${p.is_favorite ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-400 hover:bg-amber-50'} rounded-lg transition-all flex items-center justify-center cursor-pointer" title="Toggle Favorite">
                 <i data-lucide="star" class="w-4 h-4 ${p.is_favorite ? 'fill-current' : 'group-hover/fav:fill-amber-100'}"></i>
               </button>
-              <button onclick="MasterDB.openForm(${p.id}, '${itemCategory}')" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit Item">
+              <button onclick="MasterDB.openForm(${p.id}, '${itemCategory}')" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all cursor-pointer" title="Edit Item">
                 <i data-lucide="edit-2" class="w-4 h-4"></i>
               </button>
-              <button onclick="MasterDB.deleteItem(${p.id}, '${itemCategory}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete Item">
+              <button onclick="MasterDB.deleteItem(${p.id}, '${itemCategory}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer" title="Delete Item">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
               </button>
             </div>
@@ -793,12 +827,22 @@ const MasterDB = {
   },
 
   openForm(dataOrId = null, itemSlug = null) {
+    const actualCats = this.categories.filter(c => c.id !== 'all');
+    if (actualCats.length === 0) {
+      app.showAlert({
+        title: 'No Categories',
+        message: 'Please create at least one category before adding items.'
+      });
+      this.openManageCategoriesModal(true);
+      return;
+    }
+
     let data = dataOrId;
     if (typeof dataOrId === 'number' || typeof dataOrId === 'string') {
       data = (this.allProducts || []).find(p => p.id == dataOrId && (!itemSlug || p.slug === itemSlug))
              || (this.allProducts || []).find(p => p.id == dataOrId) || null;
     }
-    const currentSlug = itemSlug || data?.slug || (this.currentCategory !== 'all' ? this.currentCategory : (this.categories.find(c => c.id !== 'all')?.id || ''));
+    const currentSlug = itemSlug || data?.slug || (this.currentCategory !== 'all' ? this.currentCategory : (actualCats[0]?.id || ''));
     const cat = this.categories.find(c => c.id === currentSlug) || { label: 'Stock', fields: ['item_name'] };
     
     document.getElementById('db-modal-title').textContent = data ? `Edit ${cat.label} Item` : (this.currentCategory === 'all' ? 'Add Item' : `Add ${cat.label} Item`);
@@ -828,7 +872,6 @@ const MasterDB = {
       }
     }
 
-    const actualCats = this.categories.filter(c => c.id !== 'all');
     let catSelectHtml = '';
     if (this.currentCategory === 'all' || !data) {
       catSelectHtml = `
@@ -1296,6 +1339,10 @@ const MasterDB = {
   deleteItem(id, itemSlug = null) {
     const item = (this.allProducts || []).find(p => p.id == id && (!itemSlug || p.slug === itemSlug)) || (this.allProducts || []).find(p => p.id == id);
     const targetCategory = itemSlug || item?.slug || (this.currentCategory !== 'all' ? this.currentCategory : (this.categories.find(c => c.id !== 'all')?.id));
+    if (!targetCategory) {
+      app.showAlert({ title: 'Error', message: 'Category not found for this item.' });
+      return;
+    }
     app.verifyPassword({
       title: 'Delete Item Verification',
       message: 'Please enter password to delete this item:',
@@ -1307,9 +1354,15 @@ const MasterDB = {
           confirmColor: 'red',
           onConfirm: async () => {
             app.showLoading();
-            await window.api.deleteProduct(targetCategory, id);
-            await this.loadData();
-            app.hideLoading();
+            try {
+              await window.api.deleteProduct(targetCategory, id);
+              await this.loadData();
+            } catch (e) {
+              console.error('Error deleting item:', e);
+              app.showAlert({ title: 'Error', message: e.message || 'Failed to delete item.' });
+            } finally {
+              app.hideLoading();
+            }
           }
         });
       }
@@ -1322,8 +1375,10 @@ const MasterDB = {
       const item = (this.allProducts || []).find(p => p.id === id);
       targetCat = item?.slug || (this.categories.find(c => c.id !== 'all')?.id);
     }
-    await window.api.toggleFavorite(targetCat, id);
-    await this.loadData();
+    if (targetCat) {
+      await window.api.toggleFavorite(targetCat, id);
+      await this.loadData();
+    }
   },
 
   async openManageCategoriesModal(resetTab = false) {
@@ -1339,7 +1394,7 @@ const MasterDB = {
         secUni.classList.add('hidden');
       }
     }
-    const stats = await window.api.getCategoryStats();
+    const stats = (await window.api.getCategoryStats()) || [];
     const list = document.getElementById('cat-list');
 
     list.innerHTML = `
@@ -1354,7 +1409,9 @@ const MasterDB = {
             </tr>
           </thead>
             <tbody class="divide-y divide-slate-100 bg-white">
-              ${stats.map((s, idx) => {
+              ${stats.length === 0 ? `
+                <tr><td colspan="4" class="px-4 py-6 text-center text-slate-400 italic text-xs">No categories created yet.</td></tr>
+              ` : stats.map((s, idx) => {
                 return `
                   <tr class="group hover:bg-slate-50/50 transition-colors">
                     <td class="px-3 py-1.5 border-r border-slate-100 text-center font-bold text-slate-400 tabular-nums">${idx + 1}</td>
@@ -1371,19 +1428,19 @@ const MasterDB = {
                       <div class="flex items-center justify-end gap-1">
                         <!-- Normal State -->
                         <div id="cat-actions-normal-${s.slug}" class="flex items-center gap-1">
-                          <button onclick="MasterDB.handleCategoryDelete('${s.slug}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Delete">
+                          <button onclick="MasterDB.handleCategoryDelete('${s.slug}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer" title="Delete">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5" stroke-width="2.5"></i>
                           </button>
-                          <button onclick="document.getElementById('cat-input-${s.slug}').focus()" class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition-all" title="Rename">
+                          <button onclick="document.getElementById('cat-input-${s.slug}').focus()" class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition-all cursor-pointer" title="Rename">
                             <i data-lucide="edit-2" class="w-3.5 h-3.5" stroke-width="2.5"></i>
                           </button>
                         </div>
                         <!-- Edit State -->
                         <div id="cat-actions-edit-${s.slug}" class="flex items-center gap-1 hidden">
-                          <button onmousedown="MasterDB.handleCategoryRename('${s.slug}', document.getElementById('cat-input-${s.slug}').value)" class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Save">
+                          <button onmousedown="MasterDB.handleCategoryRename('${s.slug}', document.getElementById('cat-input-${s.slug}').value)" class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-all cursor-pointer" title="Save">
                             <i data-lucide="check" class="w-4 h-4" stroke-width="3"></i>
                           </button>
-                          <button onmousedown="MasterDB.openManageCategoriesModal()" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Cancel">
+                          <button onmousedown="MasterDB.openManageCategoriesModal()" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer" title="Cancel">
                             <i data-lucide="x" class="w-4 h-4" stroke-width="3"></i>
                           </button>
                         </div>
@@ -1457,8 +1514,7 @@ const MasterDB = {
               app.showAlert(res.error);
             } else {
               if (this.currentCategory === slug) {
-                const stats = await window.api.getCategoryStats();
-                this.currentCategory = stats.length > 0 ? stats[0].slug : '';
+                this.currentCategory = 'all';
               }
               await this.render(document.getElementById('app-content'));
               await this.openManageCategoriesModal();

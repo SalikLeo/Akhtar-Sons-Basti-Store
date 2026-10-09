@@ -16,14 +16,16 @@ function init() {
   createTables();
   seedInitialData();
 
-  // Auto-migrate company name setting to Akhtar & Sons
+  // Basic initial settings
   try {
-    db.prepare("UPDATE settings SET value = 'Akhtar & Sons' WHERE key = 'company_name'").run();
-    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('company_name', ?)").run('Akhtar & Sons');
-    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('address', ?)").run('B-99, Lalarukh Basti, Wah Cantt');
-    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('phone', ?)").run('0310-5123788');
+    const hasName = db.prepare("SELECT value FROM settings WHERE key = 'company_name'").get();
+    if (!hasName) {
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('company_name', ?)").run('Akhtar & Sons');
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('address', ?)").run('B-99, Lalarukh Basti, Wah Cantt');
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('phone', ?)").run('0310-5123788');
+    }
 
-    // Seed default salesmen if not set or empty
+    // Seed default salesmen once if not set
     const currentSalesmen = db.prepare("SELECT value FROM settings WHERE key = 'sellers_list'").get();
     if (!currentSalesmen || !currentSalesmen.value || currentSalesmen.value === '[]') {
       const defaultSalesmen = [
@@ -36,51 +38,8 @@ function init() {
       ];
       db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('sellers_list', ?)").run(JSON.stringify(defaultSalesmen));
     }
-
-    // Seed default shops if empty
-    const shopCount = db.prepare("SELECT COUNT(*) as c FROM shops").get().c;
-    if (shopCount === 0) {
-      const defaultShops = [
-        { name: 'Parking Canteen', owner_name: 'Asif Khan', phone: '0329-9934620', address: 'Wah Cantt', city: 'Wah Cantt' },
-        { name: 'Al-Madina Mart', owner_name: 'Haji Rafiq', phone: '0312-3456789', address: 'Faisal Iqbal Town', city: 'Wah Cantt' },
-        { name: 'Quaid Super Store', owner_name: 'Usman Ali', phone: '0321-5554321', address: 'Quaid Avenue', city: 'Wah Cantt' },
-        { name: 'Bismillah General Store', owner_name: 'Tariq Mahmood', phone: '0300-9876543', address: 'Lala Rukh', city: 'Wah Cantt' },
-        { name: 'Gulshan Bakers & Mart', owner_name: 'Bilal Sheikh', phone: '0333-8889990', address: 'Gulshan Colony', city: 'Wah Cantt' },
-        { name: 'New Shaheen Cash & Carry', owner_name: 'Zafar Iqbal', phone: '0315-7776655', address: 'Main Bazar', city: 'Wah Cantt' }
-      ];
-      const shopStmt = db.prepare("INSERT INTO shops (name, owner_name, phone, address, city, amount) VALUES (?, ?, ?, ?, ?, 0)");
-      defaultShops.forEach(s => shopStmt.run(s.name, s.owner_name, s.phone, s.address, s.city));
-    }
-
-    // Auto-migrate category labels to Akhtar & Sons FMCG categories
-    const defaultCategories = [
-      { slug: 'panels', label: 'Biscuits' },
-      { slug: 'inverters', label: 'Cold Drinks' },
-      { slug: 'structures', label: 'Jellies & Candies' },
-      { slug: 'cables', label: 'Snacks & Chips' },
-      { slug: 'breakers', label: 'Chocolates' },
-      { slug: 'batteries', label: 'Dairy & Groceries' },
-      { slug: 'misc', label: 'Juices & Beverages' },
-      { slug: 'others', label: 'General Items' }
-    ];
-    const solarKeywords = ['panel', 'solar', 'inverter', 'structure', 'cable', 'breaker', 'battery'];
-    const currentLabels = db.prepare("SELECT * FROM category_labels").all();
-    currentLabels.forEach(cl => {
-      if (solarKeywords.some(k => (cl.label || '').toLowerCase().includes(k))) {
-        const match = defaultCategories.find(dl => dl.slug === cl.slug);
-        if (match) {
-          db.prepare("UPDATE category_labels SET label = ? WHERE slug = ?").run(match.label, match.slug);
-        }
-      }
-    });
-    defaultCategories.forEach(l => {
-      const exists = db.prepare("SELECT id FROM category_labels WHERE slug = ?").get(l.slug);
-      if (!exists) {
-        db.prepare("INSERT INTO category_labels (slug, label) VALUES (?, ?)").run(l.slug, l.label);
-      }
-    });
   } catch (e) {
-    console.error("Failed to auto-update settings/shops/categories:", e);
+    console.error("Failed to initialize settings:", e);
   }
 }
 
@@ -91,20 +50,39 @@ function createTables() {
   db.exec(`CREATE TABLE IF NOT EXISTS category_labels (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, label TEXT)`);
   db.exec(`CREATE TABLE IF NOT EXISTS product_units (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE)`);
 
-  // Check if we already have categories. If not, this is a fresh DB, create standard tables.
-  const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='category_labels'").get();
-  const hasCategories = tableExists && db.prepare("SELECT COUNT(*) as c FROM category_labels").get().c > 0;
+  const initCheck = db.prepare("SELECT value FROM settings WHERE key = 'tables_initialized'").get();
+  if (!initCheck) {
+    // Fresh database: create initial default categories ONCE only
+    const defaultCategories = [
+      { slug: 'panels', label: 'Biscuits' },
+      { slug: 'inverters', label: 'Cold Drinks' },
+      { slug: 'structures', label: 'Jellies & Candies' },
+      { slug: 'cables', label: 'Snacks & Chips' },
+      { slug: 'breakers', label: 'Chocolates' },
+      { slug: 'batteries', label: 'Dairy & Groceries' },
+      { slug: 'misc', label: 'Juices & Beverages' },
+      { slug: 'others', label: 'General Items' }
+    ];
+    defaultCategories.forEach(l => {
+      try {
+        db.prepare("INSERT OR IGNORE INTO category_labels (slug, label) VALUES (?, ?)").run(l.slug, l.label);
+        db.exec(`CREATE TABLE IF NOT EXISTS products_${l.slug} (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, 
+          item_name TEXT, 
+          description TEXT, 
+          current_stock INTEGER DEFAULT 0, 
+          unit TEXT DEFAULT 'pcs', 
+          cost_price REAL DEFAULT 0, 
+          retail_price REAL DEFAULT 0, 
+          wholesale_cost_price REAL DEFAULT 0, 
+          wholesale_price REAL DEFAULT 0,
+          company_id INTEGER,
+          pieces_per_carton INTEGER DEFAULT 12
+        )`);
+      } catch(e) {}
+    });
 
-  if (!hasCategories) {
-    // Initial Products Tables
-    db.exec(`CREATE TABLE IF NOT EXISTS products_panels (id INTEGER PRIMARY KEY AUTOINCREMENT, brand TEXT, wattage TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
-    db.exec(`CREATE TABLE IF NOT EXISTS products_inverters (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT, brand TEXT, model TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
-    db.exec(`CREATE TABLE IF NOT EXISTS products_structures (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
-    db.exec(`CREATE TABLE IF NOT EXISTS products_cables (id INTEGER PRIMARY KEY AUTOINCREMENT, brand TEXT, size TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
-    db.exec(`CREATE TABLE IF NOT EXISTS products_breakers (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, brand TEXT, spec TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
-    db.exec(`CREATE TABLE IF NOT EXISTS products_batteries (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT, brand TEXT, model TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
-    db.exec(`CREATE TABLE IF NOT EXISTS products_misc (id INTEGER PRIMARY KEY AUTOINCREMENT, item_name TEXT, type TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
-    db.exec(`CREATE TABLE IF NOT EXISTS products_others (id INTEGER PRIMARY KEY AUTOINCREMENT, item_name TEXT, description TEXT, current_stock INTEGER, unit TEXT, cost_price REAL, retail_price REAL, wholesale_cost_price REAL DEFAULT 0, wholesale_price REAL DEFAULT 0)`);
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('tables_initialized', '1')").run();
   }
 
   // Migration: Add columns if missing to ALL product tables
@@ -394,6 +372,12 @@ function createTables() {
 }
 
 function seedInitialData() {
+  const isSeeded = db.prepare("SELECT value FROM settings WHERE key = 'is_initial_seeded'").get();
+  if (isSeeded && isSeeded.value === '1') return; // NEVER RE-SEED IF ALREADY SEEDED
+
+  // Mark as seeded permanently so user deletions are never overwritten
+  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('is_initial_seeded', '1')").run();
+
   const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='products_panels'").get();
   if (!tableExists) return;
   const panelCount = db.prepare('SELECT COUNT(*) as count FROM products_panels').get().count;
@@ -559,26 +543,63 @@ function saveAllKv(entries) {
   }
 }
 
+// Helper to ensure product table exists
+function ensureProductTable(slug) {
+  if (!slug) return false;
+  const safeSlug = slug.replace(/[^a-zA-Z0-9_]/g, '_');
+  try {
+    const tableExists = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(`products_${safeSlug}`);
+    if (!tableExists) {
+      db.exec(`CREATE TABLE IF NOT EXISTS products_${safeSlug} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        item_name TEXT, 
+        description TEXT, 
+        current_stock INTEGER DEFAULT 0, 
+        unit TEXT DEFAULT 'pcs', 
+        cost_price REAL DEFAULT 0, 
+        retail_price REAL DEFAULT 0,
+        wholesale_cost_price REAL DEFAULT 0,
+        wholesale_price REAL DEFAULT 0,
+        company_id INTEGER,
+        pieces_per_carton INTEGER DEFAULT 12
+      )`);
+    }
+    return true;
+  } catch (err) {
+    console.error(`Failed to ensure product table products_${safeSlug}:`, err);
+    return false;
+  }
+}
+
 // ------ PRODUCTS ------
 function getProducts(category, companyId = null) {
-  let sql = `
-    SELECT p.*, c.name as company_name, (f.id IS NOT NULL) as is_favorite 
-    FROM products_${category} p
-    LEFT JOIN favorites f ON f.category_slug = '${category}' AND f.product_id = p.id
-    LEFT JOIN companies c ON c.id = p.company_id
-  `;
-  
-  const params = [];
-  if (companyId) {
-    sql += ` WHERE p.company_id = ?`;
-    params.push(companyId);
+  if (!category) return [];
+  ensureProductTable(category);
+  try {
+    let sql = `
+      SELECT p.*, c.name as company_name, (f.id IS NOT NULL) as is_favorite 
+      FROM products_${category} p
+      LEFT JOIN favorites f ON f.category_slug = '${category}' AND f.product_id = p.id
+      LEFT JOIN companies c ON c.id = p.company_id
+    `;
+    
+    const params = [];
+    if (companyId) {
+      sql += ` WHERE p.company_id = ?`;
+      params.push(companyId);
+    }
+    
+    sql += ` ORDER BY p.id DESC`;
+    return db.prepare(sql).all(...params);
+  } catch (err) {
+    console.error(`Error in getProducts(${category}):`, err);
+    return [];
   }
-  
-  sql += ` ORDER BY p.id DESC`;
-  return db.prepare(sql).all(...params);
 }
 
 function addProduct(category, data) {
+  if (!category) throw new Error('Category is required');
+  ensureProductTable(category);
   const keys = Object.keys(data);
   const values = Object.values(data);
   const placeholders = keys.map(() => '?').join(', ');
@@ -587,23 +608,44 @@ function addProduct(category, data) {
 }
 
 function updateProduct(category, id, data) {
-  const tableInfo = db.prepare(`PRAGMA table_info(products_${category})`).all();
-  const columns = tableInfo.map(c => c.name);
-  const cleanData = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (columns.includes(key) && key !== 'id') cleanData[key] = value;
+  if (!category || !id) return;
+  ensureProductTable(category);
+  try {
+    const tableInfo = db.prepare(`PRAGMA table_info(products_${category})`).all();
+    const columns = tableInfo.map(c => c.name);
+    const cleanData = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (columns.includes(key) && key !== 'id') cleanData[key] = value;
+    }
+    if (Object.keys(cleanData).length === 0) return;
+    const updates = Object.keys(cleanData).map(k => `${k} = ?`).join(', ');
+    const values = Object.values(cleanData);
+    db.prepare(`UPDATE products_${category} SET ${updates} WHERE id = ?`).run(...values, id);
+  } catch (err) {
+    console.error(`Error in updateProduct(${category}, ${id}):`, err);
   }
-  const updates = Object.keys(cleanData).map(k => `${k} = ?`).join(', ');
-  const values = Object.values(cleanData);
-  db.prepare(`UPDATE products_${category} SET ${updates} WHERE id = ?`).run(...values, id);
 }
 
 function deleteProduct(category, id) {
-  db.prepare(`DELETE FROM products_${category} WHERE id = ?`).run(id);
+  if (!category || !id) return;
+  try {
+    const tableExists = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(`products_${category}`);
+    if (tableExists) {
+      db.prepare(`DELETE FROM products_${category} WHERE id = ?`).run(id);
+    }
+    db.prepare(`DELETE FROM favorites WHERE category_slug = ? AND product_id = ?`).run(category, id);
+  } catch (err) {
+    console.error(`Error in deleteProduct(${category}, ${id}):`, err);
+  }
 }
 
 function getCategoryLabels() {
-  return db.prepare('SELECT * FROM category_labels').all();
+  try {
+    return db.prepare('SELECT * FROM category_labels').all();
+  } catch (e) {
+    console.error('Error getting category labels:', e);
+    return [];
+  }
 }
 
 function updateCategoryLabel(slug, label) {
@@ -618,6 +660,7 @@ function searchAllProducts(query, companyId = null) {
     labels.forEach(l => {
         const cat = l.slug;
         const categoryLabel = (l.label || cat).replace(/'/g, "''");
+        ensureProductTable(cat);
         
         let sql = `
             SELECT p.*, c.name as company_name, (f.id IS NOT NULL) as is_favorite, '${cat}' as slug, '${categoryLabel}' as category_name
@@ -681,13 +724,18 @@ function searchAllProducts(query, companyId = null) {
 }
 
 function toggleFavorite(category, id) {
-  const exists = db.prepare('SELECT id FROM favorites WHERE category_slug = ? AND product_id = ?').get(category, id);
-  if (exists) {
-    db.prepare('DELETE FROM favorites WHERE id = ?').run(exists.id);
-    return { status: 'removed' };
-  } else {
-    db.prepare('INSERT INTO favorites (category_slug, product_id) VALUES (?, ?)').run(category, id);
-    return { status: 'added' };
+  try {
+    const exists = db.prepare('SELECT id FROM favorites WHERE category_slug = ? AND product_id = ?').get(category, id);
+    if (exists) {
+      db.prepare('DELETE FROM favorites WHERE id = ?').run(exists.id);
+      return { status: 'removed' };
+    } else {
+      db.prepare('INSERT INTO favorites (category_slug, product_id) VALUES (?, ?)').run(category, id);
+      return { status: 'added' };
+    }
+  } catch (err) {
+    console.error(`Error toggling favorite for ${category} ${id}:`, err);
+    return { error: err.message };
   }
 }
 
@@ -696,13 +744,18 @@ function getFavoriteProducts() {
   let results = [];
   labels.forEach(l => {
     const cat = l.slug;
-    const sql = `
-      SELECT p.*, '${cat}' as slug, 1 as is_favorite 
-      FROM products_${cat} p
-      INNER JOIN favorites f ON f.category_slug = '${cat}' AND f.product_id = p.id
-    `;
-    const rows = db.prepare(sql).all();
-    results = results.concat(rows);
+    try {
+      ensureProductTable(cat);
+      const sql = `
+        SELECT p.*, '${cat}' as slug, 1 as is_favorite 
+        FROM products_${cat} p
+        INNER JOIN favorites f ON f.category_slug = '${cat}' AND f.product_id = p.id
+      `;
+      const rows = db.prepare(sql).all();
+      results = results.concat(rows);
+    } catch (e) {
+      console.error(`Error getting favorite products for ${cat}:`, e);
+    }
   });
   return results;
 }
@@ -710,46 +763,63 @@ function getFavoriteProducts() {
 function getCategoryStats() {
     const labels = getCategoryLabels();
     return labels.map(l => {
-        const count = db.prepare(`SELECT COUNT(*) as c FROM products_${l.slug}`).get().c || 0;
-        return { ...l, count };
+        try {
+            ensureProductTable(l.slug);
+            const count = db.prepare(`SELECT COUNT(*) as c FROM products_${l.slug}`).get().c || 0;
+            return { ...l, count };
+        } catch (e) {
+            console.error(`Error getting stats for category ${l.slug}:`, e);
+            return { ...l, count: 0 };
+        }
     });
 }
 
 function addCategory(label) {
     const slug = label.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+    if (!slug) return { error: 'Invalid category name' };
     
     // Check if exists
     const exists = db.prepare('SELECT id FROM category_labels WHERE slug = ?').get(slug);
     if (exists) return { error: 'Category already exists' };
 
-    const transaction = db.transaction(() => {
-        db.prepare('INSERT INTO category_labels (slug, label) VALUES (?, ?)').run(slug, label);
-        db.exec(`CREATE TABLE products_${slug} (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            item_name TEXT, 
-            description TEXT, 
-            current_stock INTEGER DEFAULT 0, 
-            unit TEXT DEFAULT 'pcs', 
-            cost_price REAL DEFAULT 0, 
-            retail_price REAL DEFAULT 0,
-            wholesale_cost_price REAL DEFAULT 0,
-            wholesale_price REAL DEFAULT 0,
-            company_id INTEGER,
-            pieces_per_carton INTEGER DEFAULT 12
-        )`);
-    });
-    transaction();
-    return { success: true, slug };
+    try {
+        const transaction = db.transaction(() => {
+            db.prepare('INSERT INTO category_labels (slug, label) VALUES (?, ?)').run(slug, label);
+            db.exec(`CREATE TABLE IF NOT EXISTS products_${slug} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                item_name TEXT, 
+                description TEXT, 
+                current_stock INTEGER DEFAULT 0, 
+                unit TEXT DEFAULT 'pcs', 
+                cost_price REAL DEFAULT 0, 
+                retail_price REAL DEFAULT 0,
+                wholesale_cost_price REAL DEFAULT 0,
+                wholesale_price REAL DEFAULT 0,
+                company_id INTEGER,
+                pieces_per_carton INTEGER DEFAULT 12
+            )`);
+        });
+        transaction();
+        return { success: true, slug };
+    } catch (err) {
+        console.error('Error adding category:', err);
+        return { error: err.message };
+    }
 }
 
 function deleteCategory(slug) {
-    const transaction = db.transaction(() => {
-        db.prepare('DELETE FROM category_labels WHERE slug = ?').run(slug);
-        db.prepare('DELETE FROM favorites WHERE category_slug = ?').run(slug);
-        db.exec(`DROP TABLE IF EXISTS products_${slug}`);
-    });
-    transaction();
-    return { success: true };
+    try {
+        const transaction = db.transaction(() => {
+            db.prepare('DELETE FROM category_labels WHERE slug = ?').run(slug);
+            db.prepare('DELETE FROM favorites WHERE category_slug = ?').run(slug);
+            db.exec(`DROP TABLE IF EXISTS products_${slug}`);
+        });
+        transaction();
+        return { success: true };
+    } catch (err) {
+        console.error(`Error deleting category ${slug}:`, err);
+        return { error: err.message };
+    }
 }
 
 // ------ PROPOSALS ------
