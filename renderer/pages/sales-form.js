@@ -96,6 +96,10 @@ window.SalesForm = {
     const savedTaxPercent = window.storage ? window.storage.get('tax_percent') : null;
     this.taxPercent = savedTaxPercent !== null ? parseFloat(savedTaxPercent) : 18;
     this.isTaxEnabled = savedTaxEnabled !== null ? Boolean(savedTaxEnabled) : true;
+    const savedWhtEnabled = window.storage ? window.storage.get('wht_enabled') : null;
+    const savedWhtPercent = window.storage ? window.storage.get('wht_percent') : null;
+    this.whtPercent = savedWhtPercent !== null ? parseFloat(savedWhtPercent) : 0.5;
+    this.isWhtEnabled = savedWhtEnabled !== null ? Boolean(savedWhtEnabled) : true;
     const savedIncludePrevBal = window.storage ? window.storage.get('include_prev_balance') : null;
     this.includePrevBalance = savedIncludePrevBal !== null ? Boolean(savedIncludePrevBal) : true;
 
@@ -139,6 +143,8 @@ window.SalesForm = {
         this.isReceivedCustom = true;
         this.taxPercent = (sale.tax_percent !== undefined && sale.tax_percent !== null && sale.tax_percent > 0) ? sale.tax_percent : (savedTaxPercent !== null ? parseFloat(savedTaxPercent) : 18);
         this.isTaxEnabled = (sale.tax_percent > 0 || (sale.tax_amount !== undefined && sale.tax_amount > 0));
+        this.whtPercent = (sale.wht_percent !== undefined && sale.wht_percent !== null && Number(sale.wht_percent) > 0) ? Number(sale.wht_percent) : (savedWhtPercent !== null ? parseFloat(savedWhtPercent) : 0.5);
+        this.isWhtEnabled = (Number(sale.wht_percent) > 0 || (sale.wht_amount !== undefined && Number(sale.wht_amount) > 0));
         this.cart = sale.items.map(item => ({
           id: item.item_id,
           description: item.description,
@@ -432,8 +438,34 @@ window.SalesForm = {
               </div>
             </div>
 
-            <!-- Right Financial Summary with Received Amount & Pending Due -->
+            <!-- Right Financial Summary with WHT, Received Amount & Pending Due -->
             <div class="flex items-center gap-3">
+              <!-- WHT Toggle & Custom % Field -->
+              <div class="inline-flex items-center gap-1 select-none">
+                <label class="inline-flex items-center gap-1 cursor-pointer" title="Include/Exclude Withholding Tax (WHT)">
+                  <input type="checkbox" 
+                         id="sf-wht-toggle" 
+                         ${this.isWhtEnabled ? 'checked' : ''} 
+                         onchange="SalesForm.toggleWhtEnable(this.checked)" 
+                         class="w-3.5 h-3.5 rounded text-amber-500 cursor-pointer accent-amber-500">
+                  <span class="text-[10px] font-black uppercase text-slate-900 tracking-tight">WHT</span>
+                </label>
+                <span class="text-[10px] text-slate-500 font-bold">(</span>
+                <input type="number" 
+                       id="sf-wht-percent" 
+                       value="${this.whtPercent !== undefined && this.whtPercent !== null ? this.whtPercent : 0.5}" 
+                       min="0" 
+                       max="100" 
+                       step="any" 
+                       oninput="SalesForm.onWhtPercentInput(this.value)" 
+                       style="-moz-appearance: textfield; -webkit-appearance: none; margin: 0;"
+                       class="w-10 text-center bg-white border border-slate-300 rounded px-1 py-0 text-[10.5px] font-black text-slate-900 outline-none focus:border-amber-500 tabular-nums">
+                <span class="text-[10px] text-slate-500 font-bold">%)</span>
+                <span class="text-[11px] font-black text-slate-800 tabular-nums ml-0.5" id="sf-wht-amount-text">Rs. 0</span>
+              </div>
+
+              <div class="h-4 w-[1px] bg-slate-300"></div>
+
               <div class="flex items-center gap-1.5">
                 <span class="font-black text-xs text-slate-950 uppercase tracking-tight">Net Inv. Amount:</span>
                 <span class="font-black text-base text-emerald-700 tabular-nums" id="sf-grand-total">Rs. 0</span>
@@ -1675,6 +1707,23 @@ window.SalesForm = {
     this.updateSummary();
   },
 
+  toggleWhtEnable(enabled) {
+    this.isWhtEnabled = Boolean(enabled);
+    if (window.storage) {
+      window.storage.set('wht_enabled', this.isWhtEnabled);
+    }
+    this.updateSummary();
+  },
+
+  onWhtPercentInput(val) {
+    const num = parseFloat(val);
+    this.whtPercent = isNaN(num) ? 0 : Math.max(0, num);
+    if (window.storage) {
+      window.storage.set('wht_percent', this.whtPercent);
+    }
+    this.updateSummary();
+  },
+
   togglePrevBalanceEnable(enabled) {
     this.includePrevBalance = Boolean(enabled);
     if (window.storage) {
@@ -1690,6 +1739,7 @@ window.SalesForm = {
     let totalGst = 0;
 
     const currentTaxPct = this.isTaxEnabled ? (parseFloat(this.taxPercent) || 0) : 0;
+    const currentWhtPct = this.isWhtEnabled ? (parseFloat(this.whtPercent) || 0) : 0;
 
     this.cart.forEach(item => {
       const qty = parseFloat(item.qty) || 0;
@@ -1720,10 +1770,13 @@ window.SalesForm = {
       }
     }
 
+    const subtotalValue = Math.max(0, totalGross - totalItemDisc - additionalDisc);
+    const totalWht = this.isWhtEnabled ? Math.round(subtotalValue * (currentWhtPct / 100)) : 0;
+
     const prevBal = Number(this.shopPreviousBalance) || 0;
     const effectivePrevBal = (this.includePrevBalance && prevBal > 0) ? prevBal : 0;
 
-    const goodsNet = Math.max(0, (totalGross - totalItemDisc - additionalDisc) + totalGst);
+    const goodsNet = Math.max(0, subtotalValue + totalGst + totalWht);
     const netInvAmount = goodsNet + effectivePrevBal;
     
     // Received Amount Calculation
@@ -1751,6 +1804,21 @@ window.SalesForm = {
     const prevBalToggle = document.getElementById('sf-prev-bal-toggle');
     if (prevBalToggle && prevBalToggle.checked !== this.includePrevBalance) {
       prevBalToggle.checked = this.includePrevBalance;
+    }
+
+    const whtToggle = document.getElementById('sf-wht-toggle');
+    if (whtToggle && whtToggle.checked !== this.isWhtEnabled) {
+      whtToggle.checked = this.isWhtEnabled;
+    }
+
+    const whtAmountEl = document.getElementById('sf-wht-amount-text');
+    if (whtAmountEl) {
+      whtAmountEl.textContent = app.formatCurrency(totalWht);
+      if (totalWht > 0 && this.isWhtEnabled) {
+        whtAmountEl.className = 'text-[11px] font-black text-amber-900 tabular-nums ml-0.5';
+      } else {
+        whtAmountEl.className = 'text-[11px] font-bold text-slate-400 tabular-nums ml-0.5';
+      }
     }
 
     const prevBalEl = document.getElementById('sf-prev-balance-text');
@@ -1919,9 +1987,13 @@ window.SalesForm = {
     }
 
     totalDiscount += additionalDisc;
+    const subtotalValue = Math.max(0, totalGross - totalDiscount);
+    const currentWhtPct = this.isWhtEnabled ? (parseFloat(this.whtPercent) || 0) : 0;
+    const totalWht = this.isWhtEnabled ? Math.round(subtotalValue * (currentWhtPct / 100)) : 0;
+
     const prevBal = Number(this.shopPreviousBalance) || 0;
     const effectivePrevBal = (this.includePrevBalance && prevBal > 0) ? prevBal : 0;
-    const goodsNet = Math.max(0, (totalGross - totalDiscount) + totalGst);
+    const goodsNet = Math.max(0, subtotalValue + totalGst + totalWht);
     const grandTotal = goodsNet + effectivePrevBal;
     const totalProfit = goodsNet - totalCost;
 
@@ -1969,6 +2041,8 @@ window.SalesForm = {
       subtotal: totalGross + effectivePrevBal,
       tax_percent: this.isTaxEnabled ? (parseFloat(this.taxPercent) || 0) : 0,
       tax_amount: totalGst,
+      wht_percent: this.isWhtEnabled ? (parseFloat(this.whtPercent) || 0) : 0,
+      wht_amount: totalWht,
       retail_total: grandTotal,
       cost_total: totalCost,
       profit: totalProfit,
@@ -2093,6 +2167,11 @@ window.SalesForm = {
           <span>GST (${parseFloat(this.taxPercent) || 0}%)</span>
           <span class="font-bold font-display">+ ${app.formatCurrency(totalGst)}</span>
         </div>` : ''}
+        ${this.isWhtEnabled && totalWht > 0 ? `
+        <div class="flex justify-between items-center text-amber-900">
+          <span>WHT (${parseFloat(this.whtPercent) || 0}%)</span>
+          <span class="font-bold font-display">+ ${app.formatCurrency(totalWht)}</span>
+        </div>` : ''}
         ${effectivePrevBal > 0 ? `
         <div class="flex justify-between items-center text-amber-800 bg-amber-50/80 px-2 py-1 rounded border border-amber-200">
           <span class="font-bold">Balance Amount (Prev. Bal)</span>
@@ -2207,6 +2286,11 @@ window.SalesForm = {
       : (this.isTaxEnabled ? (parseFloat(this.taxPercent) || 0) : 0);
     const hasReceiptTax = receiptTaxPercent > 0 || (Number(data.tax_amount) > 0);
 
+    const receiptWhtPercent = (data.wht_percent !== undefined && data.wht_percent !== null)
+      ? Number(data.wht_percent)
+      : (this.isWhtEnabled ? (parseFloat(this.whtPercent) || 0) : 0);
+    const hasReceiptWht = receiptWhtPercent > 0 || (Number(data.wht_amount) > 0);
+
     let rowsHtml = '';
     for (let i = 0; i < totalRowsCount; i++) {
       if (i < items.length) {
@@ -2279,9 +2363,13 @@ window.SalesForm = {
     }
 
     const specialDisc = Number(data.discount) || 0;
+    const totalWht = hasReceiptWht 
+      ? (data.wht_amount !== undefined && data.wht_amount !== null ? Number(data.wht_amount) : Math.round(Math.max(0, totalGross - totalItemDisc - specialDisc) * (receiptWhtPercent / 100))) 
+      : 0;
+
     const grandTotal = (data.retail_total !== undefined && data.retail_total !== null)
       ? Number(data.retail_total)
-      : Math.max(0, totalNet - specialDisc);
+      : Math.max(0, totalNet + totalWht - specialDisc);
 
     const receivedAmount = (data.received_amount !== undefined && data.received_amount !== null)
       ? Number(data.received_amount)
@@ -2388,6 +2476,11 @@ window.SalesForm = {
             <div style="display: flex; justify-content: space-between; padding: 1px 0;">
               <span style="font-weight: 700;">GST (${receiptTaxPercent}%)</span>
               <span style="font-weight: 700; width: 75px; text-align: right;">${app.formatAmount(totalGst)}</span>
+            </div>` : ''}
+            ${hasReceiptWht && totalWht > 0 ? `
+            <div style="display: flex; justify-content: space-between; padding: 1px 0;">
+              <span style="font-weight: 700;">WHT (${receiptWhtPercent}%)</span>
+              <span style="font-weight: 700; width: 75px; text-align: right;">${app.formatAmount(totalWht)}</span>
             </div>` : ''}
             <div style="display: flex; justify-content: space-between; padding: 2px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; margin-top: 2px; font-size: 11px;">
               <span style="font-weight: 700;">Net Inv. Amount</span>

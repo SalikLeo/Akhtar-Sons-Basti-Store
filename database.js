@@ -221,10 +221,16 @@ function createTables() {
     try { db.exec("ALTER TABLE proposals ADD COLUMN payment_method TEXT DEFAULT 'Cash'"); } catch(e) { console.error("Migration failed (payment_method):", e); }
   }
   if (!columns.includes('tax_percent')) {
-    try { db.exec('ALTER TABLE proposals ADD COLUMN tax_percent REAL DEFAULT 0.5'); } catch(e) {}
+    try { db.exec('ALTER TABLE proposals ADD COLUMN tax_percent REAL DEFAULT 18'); } catch(e) {}
   }
   if (!columns.includes('tax_amount')) {
     try { db.exec('ALTER TABLE proposals ADD COLUMN tax_amount REAL DEFAULT 0'); } catch(e) {}
+  }
+  if (!columns.includes('wht_percent')) {
+    try { db.exec('ALTER TABLE proposals ADD COLUMN wht_percent REAL DEFAULT 0'); } catch(e) {}
+  }
+  if (!columns.includes('wht_amount')) {
+    try { db.exec('ALTER TABLE proposals ADD COLUMN wht_amount REAL DEFAULT 0'); } catch(e) {}
   }
   if (!columns.includes('subtotal')) {
     try { db.exec('ALTER TABLE proposals ADD COLUMN subtotal REAL DEFAULT 0'); } catch(e) {}

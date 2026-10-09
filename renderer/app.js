@@ -95,10 +95,12 @@ const app = {
       this.clearAllPrintContainers();
     });
 
-    // Global integer enforcement for all number inputs
+    // Global integer enforcement for integer number inputs (while allowing decimals where step="any" or decimal inputs)
     document.addEventListener('keydown', (e) => {
       if (e.target && e.target.type === 'number') {
-        if (['.', ',', 'e', 'E', '+'].includes(e.key)) {
+        const allowDecimal = e.target.step === 'any' || (e.target.step && e.target.step.includes('.')) || e.target.dataset.allowDecimal !== undefined || e.target.id === 'sf-wht-percent' || e.target.id === 'sf-gst-percent' || e.target.id.includes('percent') || e.target.id.includes('margin') || e.target.id.includes('discount');
+        const blockedKeys = allowDecimal ? ['e', 'E', '+'] : ['.', ',', 'e', 'E', '+'];
+        if (blockedKeys.includes(e.key)) {
           e.preventDefault();
         }
       }
@@ -106,20 +108,27 @@ const app = {
 
     document.addEventListener('input', (e) => {
       if (e.target && e.target.type === 'number') {
-        if (e.target.value.includes('.') || e.target.value.includes('e') || e.target.value.includes('E')) {
-          e.target.value = e.target.value.replace(/[^0-9-]/g, '');
+        const allowDecimal = e.target.step === 'any' || (e.target.step && e.target.step.includes('.')) || e.target.dataset.allowDecimal !== undefined || e.target.id === 'sf-wht-percent' || e.target.id === 'sf-gst-percent' || e.target.id.includes('percent') || e.target.id.includes('margin') || e.target.id.includes('discount');
+        if (!allowDecimal) {
+          if (e.target.value.includes('.') || e.target.value.includes('e') || e.target.value.includes('E')) {
+            e.target.value = e.target.value.replace(/[^0-9-]/g, '');
+          }
         }
       }
     });
 
     document.addEventListener('paste', (e) => {
       if (e.target && e.target.type === 'number') {
+        const allowDecimal = e.target.step === 'any' || (e.target.step && e.target.step.includes('.')) || e.target.dataset.allowDecimal !== undefined || e.target.id === 'sf-wht-percent' || e.target.id === 'sf-gst-percent' || e.target.id.includes('percent') || e.target.id.includes('margin') || e.target.id.includes('discount');
         const text = (e.clipboardData || window.clipboardData)?.getData('text');
-        if (text && !/^-?\d+$/.test(text.trim())) {
-          e.preventDefault();
-          const cleanText = text.replace(/[^0-9-]/g, '');
-          if (cleanText) {
-            document.execCommand('insertText', false, cleanText);
+        if (text) {
+          const isValid = allowDecimal ? /^-?\d*(\.\d*)?$/.test(text.trim()) : /^-?\d+$/.test(text.trim());
+          if (!isValid) {
+            e.preventDefault();
+            const cleanText = allowDecimal ? text.replace(/[^0-9.-]/g, '') : text.replace(/[^0-9-]/g, '');
+            if (cleanText) {
+              document.execCommand('insertText', false, cleanText);
+            }
           }
         }
       }
